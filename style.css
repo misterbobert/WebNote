@@ -81,22 +81,31 @@ body, html {
   z-index: 1200;
 }
 
-/* PROFILE / LOGIN */
+/* PROFILE */
 .profile {
   display: flex;
-  justify-content: center;
+  align-items: center;
+  justify-content: space-between;
   padding: 1rem;
+  gap: 0.5rem;
 }
-.login-btn {
+.username {
+  font-size: 1rem;
+}
+
+/* Login/Manage buttons */
+.login-btn,
+.manage-btn {
   background: var(--clr-panel);
   border: none;
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-size: 1rem;
-  transition: background 0.25s ease;
   border-radius: 4px;
+  transition: background 0.25s ease;
 }
-.login-btn:hover {
+.login-btn:hover,
+.manage-btn:hover {
   background: var(--clr-hover);
 }
 
