@@ -1,5 +1,5 @@
 :root {
-    --clr-bg:      #5C807D;
+    --clr-bg:      #4A6F6E;   /* mai întunecat decât înainte */
     --clr-panel:   #344955;
     --clr-text:    #FFFFFF;
     --clr-hover:   #415A6A;
@@ -11,7 +11,7 @@
     align-items: center;
     background: var(--clr-bg);
     height: 100vh;
-    padding-top: 48px; /* sub header */
+    padding-top: 48px;
   }
   
   .profile-card-large {
@@ -24,24 +24,75 @@
     color: var(--clr-text);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    overflow: auto;
   }
   
   .profile-card-large h1 {
     margin: 0;
     font-weight: normal;
+    text-align: center;   /* titlu centrat sus */
   }
   
-  .profile-card-large .details {
+  /* conținut row: detalii vs imagine */
+  .profile-content {
+    display: flex;
     flex: 1;
-    margin-top: 1rem;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+  
+  /* secțiunea cu detalii */
+  .details {
+    flex: 1;
     font-size: 1.1rem;
   }
-  .profile-card-large .details p {
+  .details p {
     margin: 0.5rem 0;
   }
   
+  /* card imagine + formular */
+  .image-card {
+    flex: 0 0 30%;
+    background: rgba(52,73,85,0.8);
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .image-card img {
+    width: 100%;
+    border-radius: 4px;
+    max-height: 200px;
+    object-fit: cover;
+  }
+  
+  .image-card .placeholder {
+    width: 100%;
+    height: 200px;
+    background: #415A6A;
+    border-radius: 4px;
+  }
+  
+  /* input & save */
+  .image-card input[type="url"] {
+    width: 100%;
+    margin-top: 1rem;
+    background: rgba(92,128,125,0.3);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem;
+  }
+  .image-card input::placeholder {
+    color: rgba(255,255,255,0.7);
+  }
+  .image-card .save-btn {
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+  
+  /* buton Logout */
   .profile-card-large .submit-btn {
     align-self: flex-end;
     background: var(--clr-panel);
@@ -51,6 +102,7 @@
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.25s ease;
+    margin-top: 1rem;
   }
   .profile-card-large .submit-btn:hover {
     background: var(--clr-hover);

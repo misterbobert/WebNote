@@ -167,6 +167,64 @@ body, html {
   padding: 1rem;
   gap: 1rem;   /* mai mult spațiu între elemente */
 }
+/* PROFILE CARD */
+.profile-card {
+  background: rgba(52,73,85,0.8);
+  border-radius: 8px;
+  margin: 0.75rem 1rem;
+  padding: 0.25rem 0.75rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* PROFILE */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+/* imagine de profil rotunjită */
+.profile-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* imagine de profil rotunjită, puțin mai mare */
+/* FORȚĂ AVATAR ROTUND 40×40 */
+.sidebar .profile .profile-img,
+.sidebar .profile .avatar {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  object-fit: cover;     /* pentru <img> */
+  display: block;        /* suprascrie orice inline sau flex interferent */
+  overflow: hidden;      /* taie marginile orice dacă e nevoie */
+}
+
+/* username */
+.username {
+  font-size: 1rem;
+  color: var(--clr-text);
+  flex-grow: 1;
+}
+
+/* buton Manage */
+.manage-btn {
+  background: var(--clr-panel);
+  border: none;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.manage-btn:hover {
+  background: var(--clr-hover);
+}
 
 /* Manage button stilizat ca panel-btn */
 .manage-btn {
