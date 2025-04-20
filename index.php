@@ -2,7 +2,6 @@
 session_start();
 require 'config.php';
 
-// Preluăm username-ul dacă ești logat
 if (isset($_SESSION['user_id'])) {
     $stmt = $pdo->prepare('SELECT username FROM users WHERE id = ?');
     $stmt->execute([$_SESSION['user_id']]);
@@ -21,34 +20,37 @@ if (isset($_SESSION['user_id'])) {
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- HEADER FIX -->
   <header class="header">
-    <button id="hamburger" type="button" class="hamburger">☰</button>
+    <button id="hamburger" class="hamburger">☰</button>
   </header>
 
   <div class="container">
-    <!-- SIDEBAR (ascuns implicit) -->
     <aside class="sidebar collapsed">
-      <div class="profile">
+
+      <!-- CARD MAMĂ pentru profil -->
+      <div class="profile-card">
         <?php if ($username): ?>
-          <span class="username">@<?= htmlspecialchars($username) ?></span>
-          <button id="manage-btn" type="button" class="manage-btn">Manage</button>
+          <div class="profile">
+            <span class="username">@<?= htmlspecialchars($username) ?></span>
+            <button id="manage-btn" class="manage-btn">Manage</button>
+          </div>
         <?php else: ?>
-          <button id="login-btn" type="button" class="login-btn">Login</button>
+          <button id="login-btn" class="login-btn">Login</button>
         <?php endif; ?>
       </div>
+
       <hr>
+
       <div class="notes-panel">
-        <button id="new-note" type="button" class="panel-btn">Create new note</button>
+        <button id="new-note" class="panel-btn">Create new note</button>
         <div id="notes-list" class="notes-list"></div>
-        <button id="toggle-notes" type="button" class="panel-btn more-btn">
+        <button id="toggle-notes" class="panel-btn more-btn">
           <span id="toggle-label">more</span>
           <span id="toggle-arrow">∨</span>
         </button>
       </div>
     </aside>
 
-    <!-- EDITOR -->
     <main class="editor">
       <!-- Zona de editare note -->
     </main>

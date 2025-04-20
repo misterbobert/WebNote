@@ -159,3 +159,64 @@ body, html {
 .sidebar.collapsed + .editor {
   margin-left: 0;
 }
+/* PROFILE */
+.profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  gap: 1rem;   /* mai mult spațiu între elemente */
+}
+
+/* Manage button stilizat ca panel-btn */
+.manage-btn {
+  background: var(--clr-panel);
+  border: none;
+  padding: 0.75rem 1rem;  /* padding similar panel-btn */
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.manage-btn:hover {
+  background: var(--clr-hover);
+}
+/* CARD MAMĂ pentru username + Manage/Login */
+.profile-card {
+  background: rgba(52,73,85,0.8);
+  border-radius: 8px;
+  margin: 0.75rem 1rem;  /* mai puțin spațiu vertical */
+  padding: 0.25rem 0.75rem; /* padding vertical redus */
+  display: flex;
+  justify-content: center;
+}
+
+/* PROFILE (în interiorul card-ului) */
+.profile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;  /* puțin mai strâns */
+}
+
+/* Butonul Manage mai mic */
+.manage-btn {
+  background: var(--clr-panel);
+  border: none;
+  padding: 0.5rem 0.75rem; /* reduc padding */
+  font-size: 0.9rem;      /* font puțin mai mic */
+  color: var(--clr-text);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.manage-btn:hover {
+  background: var(--clr-hover);
+}
+
+/* Username */
+.username {
+  font-size: 1rem;
+  color: var(--clr-text);
+}
