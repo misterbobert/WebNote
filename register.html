@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Register – Webnote</title>
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+  <header class="header">
+    <button id="back-register" class="btn back-btn">Go back</button>
+  </header>
+
+  <main class="register-page">
+    <div class="register-card">
+      <h1>Register</h1>
+      <form id="register-form">
+        <label>
+          <span>Email:</span>
+          <input type="email" name="email" required>
+        </label>
+        <label>
+          <span>User:</span>
+          <input type="text" name="user" required>
+        </label>
+        <label>
+          <span>Password:</span>
+          <input type="password" name="password" required>
+        </label>
+        <label>
+          <span>Confirm Password:</span>
+          <input type="password" name="confirm_password" required>
+        </label>
+        <button type="submit" class="btn submit-btn">Register</button>
+      </form>
+      <p class="signup">
+        Already have an account? <a href="login.html">Go to login</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('back-register').addEventListener('click', () => history.back());
+    document.getElementById('register-form').addEventListener('submit', e => {
+      e.preventDefault();
+      alert('Se încearcă înregistrarea…');
+      // TODO: implement register
+    });
+  </script>
+</body>
+</html>
