@@ -1,110 +1,161 @@
+/* profile.css */
+
+/* Culori specifice paginii de profil */
 :root {
-    --clr-bg:      #4A6F6E;   /* mai întunecat decât înainte */
-    --clr-panel:   #344955;
-    --clr-text:    #FFFFFF;
-    --clr-hover:   #415A6A;
-  }
-  
-  .login-page {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--clr-bg);
-    height: 100vh;
-    padding-top: 48px;
-  }
-  
-  .profile-card-large {
-    background: var(--clr-bg);
-    padding: 2rem;
-    border-radius: 16px;
-    width: 70vw;
-    height: 70vh;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    color: var(--clr-text);
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .profile-card-large h1 {
-    margin: 0;
-    font-weight: normal;
-    text-align: center;   /* titlu centrat sus */
-  }
-  
-  /* conținut row: detalii vs imagine */
-  .profile-content {
-    display: flex;
-    flex: 1;
-    gap: 2rem;
-    margin-top: 1.5rem;
-  }
-  
-  /* secțiunea cu detalii */
-  .details {
-    flex: 1;
-    font-size: 1.1rem;
-  }
-  .details p {
-    margin: 0.5rem 0;
-  }
-  
-  /* card imagine + formular */
-  .image-card {
-    flex: 0 0 30%;
-    background: rgba(52,73,85,0.8);
-    border-radius: 8px;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .image-card img {
-    width: 100%;
-    border-radius: 4px;
-    max-height: 200px;
-    object-fit: cover;
-  }
-  
-  .image-card .placeholder {
-    width: 100%;
-    height: 200px;
-    background: #415A6A;
-    border-radius: 4px;
-  }
-  
-  /* input & save */
-  .image-card input[type="url"] {
-    width: 100%;
-    margin-top: 1rem;
-    background: rgba(92,128,125,0.3);
-    color: #FFFFFF;
-    border: none;
-    border-radius: 4px;
-    padding: 0.5rem;
-  }
-  .image-card input::placeholder {
-    color: rgba(255,255,255,0.7);
-  }
-  .image-card .save-btn {
-    margin-top: 0.5rem;
-    width: 100%;
-  }
-  
-  /* buton Logout */
-  .profile-card-large .submit-btn {
-    align-self: flex-end;
-    background: var(--clr-panel);
-    border: none;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background 0.25s ease;
-    margin-top: 1rem;
-  }
-  .profile-card-large .submit-btn:hover {
-    background: var(--clr-hover);
-  }
-  
+  --clr-bg:      #4A6F6E;
+  --clr-panel:   #344955;
+  --clr-text:    #FFFFFF;
+  --clr-hover:   #415A6A;
+}
+
+/* Layout de bază */
+.login-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--clr-bg);
+  height: 100vh;
+  padding-top: 48px;
+}
+
+/* Card-ul principal */
+.profile-card-large {
+  background: var(--clr-bg);
+  padding: 2rem;
+  border-radius: 16px;
+  width: 70vw;
+  height: 70vh;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  color: var(--clr-text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Titlu centrat */
+.profile-card-large h1 {
+  margin: 0;
+  font-weight: normal;
+  text-align: center;
+}
+
+/* Conținut în două coloane: detalii vs imagine */
+.profile-content {
+  display: flex;
+  flex: 1;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+/* Secțiunea de detalii */
+.details {
+  flex: 1;
+  font-size: 1.1rem;
+}
+.details p {
+  margin: 0.5rem 0;
+}
+
+/* Butonul Change — doar margine de sus */
+.change-btn {
+  margin-top: 0.5rem;
+}
+
+/* Formularele de schimbare (email/parolă) — ascunse implicit */
+.change-form {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.change-form label {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container butoane Save/Cancel */
+.form-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+/* Card-ul pentru imagine și formularul URL */
+.image-card {
+  flex: 0 0 30%;
+  background: rgba(52,73,85,0.8);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.image-card img {
+  width: 100%;
+  border-radius: 4px;
+  max-height: 200px;
+  object-fit: cover;
+}
+.image-card .placeholder {
+  width: 100%;
+  height: 200px;
+  background: #415A6A;
+  border-radius: 4px;
+}
+
+/* Override input URL */
+.image-card input[type="url"] {
+  width: 100%;
+  margin-top: 1rem;
+  background: rgba(92,128,125,0.3);
+  color: #000 !important;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+.image-card input::placeholder {
+  color: rgba(255,255,255,0.7);
+}
+
+/* Buton Logout din card-ul principal */
+.profile-card-large .submit-btn {
+  align-self: flex-end;
+  background: var(--clr-panel);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  margin-top: 1rem;
+}
+.profile-card-large .submit-btn:hover {
+  background: var(--clr-hover);
+}
+
+/* ───────────────────────────────────────────────
+   FORȚĂ TEXT NEGRU ȘI FUNDAL LIGHT-VERDE PE TOATE
+   INPUȚII DIN CARD-UL DE PROFIL
+   ─────────────────────────────────────────────── */
+.profile-card-large input[type="email"],
+.profile-card-large input[type="password"],
+.profile-card-large input[type="url"] {
+  background: rgba(92,128,125,0.3) !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 0.5rem !important;
+}
+
+/* păstrează placeholder-ul alb semitransparent */
+.profile-card-large input::placeholder {
+  color: rgba(255,255,255,0.7) !important;
+}
+
+/* Stil generic butoane — moștenește din style.css */
+.form-buttons .panel-btn,
+.change-btn,
+.profile-card-large .submit-btn {
+  /* toate sunt panel-btn deja */
+}
+
+/* Încheiat profile.css */
