@@ -278,3 +278,160 @@ body, html {
   font-size: 1rem;
   color: var(--clr-text);
 }
+/* ─────────────────────────────────────────────
+   Card mare verde cu input în zona de editor
+   ───────────────────────────────────────────── */
+   .editor {
+    /* păstrează background-ul curent */
+    background: var(--clr-main);
+  }
+  
+  .editor-card {
+    background: var(--clr-bg);      /* verde mai închis */
+    border-radius: 12px;            /* colțuri rotunjite */
+    padding: 2rem;                  /* spațiu intern */
+    margin: 1rem;                   /* spațiu exterior */
+    max-width: 800px;               /* lățime maximă */
+    width: 100%;                    /* ocupă 100% din container */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  }
+  
+  /* Input text din card */
+  .editor-card .editor-input {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    color: var(--clr-text);
+    font-size: 1rem;
+  }
+  
+  .editor-card .editor-input::placeholder {
+    color: rgba(255,255,255,0.6);
+  }
+  
+  /* Dacă vrei să arate mai clar când focus */
+  .editor-card .editor-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(65,90,106,0.5);
+  }
+  /* ─────────────────────────────────────────────
+   Mută editor‐card în funcție de starea sidebar-ului
+   ───────────────────────────────────────────── */
+:root {
+  --sidebar-width: 250px;       /* lățimea sidebar-ului când e deschis */
+  --editor-offset: 1rem;        /* distanța când sidebar e închis */
+  --gap-after-sidebar: 1rem;    /* distanța față de sidebar când e deschis */
+}
+
+/* card-ul din editor are tranziție pe margin-left */
+.editor-card {
+  margin-left: var(--editor-offset);
+  transition: margin-left 0.25s ease;
+}
+
+/* când sidebar are clasa .open, card-ul sare după sidebar */
+.sidebar.open + .editor .editor-card {
+  margin-left: calc(var(--sidebar-width) + var(--gap-after-sidebar));
+}
+:root {
+  /* ...existentele tale variabile... */
+  --sidebar-width: 250px;       /* lățimea sidebar-ului când e deschis */
+  --editor-offset: 0.5rem;      /* reducem distanța de la stânga când sidebar e închis */
+  --gap-after-sidebar: 1rem;    /* distanța față de sidebar când e deschis */
+}
+/* Card mare verde cu input în zona de editor */
+.editor-card {
+  background: var(--clr-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem 0;              /* sus-jos 1rem, stânga-dreapta 0 */
+  width: 80%;                  /* 80% din containerul .editor */
+  max-width: none;             /* eliminăm orice max-width anterior */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  transition: margin-left 0.25s ease;
+}
+.editor-card {
+  width: 80%;                   /* păstrezi lățimea 80% */
+  height: 100vh;                /* full viewport height */
+  margin: 0 auto;               /* centrare orizontală */
+  background: var(--clr-bg);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.25s ease;
+}
+/* Mutarea la stânga/dreapta rămâne la fel */
+.editor-card {
+  margin-left: var(--editor-offset);
+}
+.sidebar.open + .editor .editor-card {
+  margin-left: calc(var(--sidebar-width) + var(--gap-after-sidebar));
+}
+/* ───────────────────────────────────────────────
+   Card și formular full-height în zona de editor
+   ─────────────────────────────────────────────── */
+   .editor-card {
+    height: 100%;
+  }
+  
+  .editor-card form {
+    height: 100%;
+  }
+  /* ─────────────────────────────────────────────
+   1) Asigură-te că .editor întinde copiii pe verticală
+   ───────────────────────────────────────────── */
+.editor {
+  display: flex;            
+  align-items: stretch;     /* întinde copiii (editor-card) până jos */
+  justify-content: center;  /* păstrează centrat pe orizontală */
+}
+
+/* ─────────────────────────────────────────────
+   2) Suprascrie dimensiunea editor-card
+   ───────────────────────────────────────────── */
+.editor-card {
+  width: 80% !important;    /* 80% din lățimea zonei editor */
+  height: 90% !important;  /* 100% din înălțimea zonei editor  AICIIIIIIIIIIIIIIII*/
+  margin: 0 auto !important;/* centrare orizontală, fără margini sus/jos */
+}
+/* ─────────────────────────────────────────────
+   Editor card responsive la sidebar + height 100% 
+   ───────────────────────────────────────────── */
+   .editor-card {
+    background: var(--clr-bg);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 80%;
+    /* înălțimea să fie 100% din .editor, nu 100vh */
+    height: 100%;
+    /* centru orizontal, dar păstrăm margin-left pentru toggle */
+    margin-right: auto !important;
+    /* margin-left inițial (sidebar închis) */
+    margin-left: var(--editor-offset) !important;
+  
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    transition: margin-left 0.25s ease;
+  }
+  
+  /* când sidebar e deschis, împingem card-ul după el */
+  .sidebar.open + .editor .editor-card {
+    margin-left: calc(var(--sidebar-width) + var(--gap-after-sidebar)) !important;
+  }
+  .editor {
+    display: flex;
+    align-items: stretch;     /* întinde copiii (editor-card) pe verticală */
+    justify-content: center;  /* centrează orizontal */
+  }
+  
+  .editor-card .editor-input {
+    /* umple tot spațiul disponibil în card */
+    flex: 1;
+    height: 100%;
+  }
+  
