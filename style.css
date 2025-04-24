@@ -17,23 +17,13 @@ body, html {
   width: 100%; height: 100%;
 }
 
-/* HEADER */
-.header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 48px;
-  background: var(--clr-main);
-  display: flex;
-  align-items: center;
-  padding: 0 1rem;
-  z-index: 1000;
-}
+ 
 
-/* CONTAINER */
+
 .container {
   display: flex;
   height: 100vh;
-  margin-top: 48px;
+  /* margin-top: 48px; ← scoate linia asta */
 }
 
 /* HAMBURGER */
@@ -51,12 +41,13 @@ body, html {
   justify-content: center;
   cursor: pointer;
   transition: background 0.25s ease;
-  position: relative;
-  z-index: 1100;
+  position: relative; 
   border-radius: 4px;
 }
 .hamburger.open {
   background: transparent;
+  
+  z-index: 110041 ;
 }
 
 /* SIDEBAR */
@@ -454,11 +445,7 @@ body, html {
 /* când sidebar e deschis, mută și title-card */
 .sidebar.open + .editor .title-card {
   margin-left: calc(var(--sidebar-width) + var(--gap-after-sidebar));
-}.header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 2000;         /* header deasupra sidebar-ului */
-}
+} 
 
 .sidebar {
   position: fixed;
