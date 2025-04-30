@@ -105,3 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('sidebarOpen', isOpen);
   });
 });
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    // dacă fișierul SW e în același folder cu index.php
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => console.log('SW înregistrat!'))
+      .catch(err => console.error('SW registration failed:', err));
+  });
+}

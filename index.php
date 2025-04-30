@@ -133,7 +133,11 @@ if ($uid) {
     };
     const initialNote = <?= json_encode($initialNote) ?>;
     const isLogged    = <?= $uid ? 'true' : 'false' ?>;
-  </script>
+  </script> 
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#5C807D">
+ 
+ 
 </head>
 <body>
   <!-- Hamburger on top -->
