@@ -1,78 +1,107 @@
-// 0) Login button → login.php
-const loginBtn = document.getElementById('login-btn');
-if (loginBtn) {
-  loginBtn.addEventListener('click', () => {
-    window.location.href = 'login.php';
-  });
-}
+// script.js
 
-// 0.1) Manage button → profile.php
-const manageBtn = document.getElementById('manage-btn');
-if (manageBtn) {
-  manageBtn.addEventListener('click', () => {
-    window.location.href = 'profile.php';
-  });
-}
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebar      = document.querySelector('.sidebar');
+  const hamburger    = document.getElementById('hamburger');
+  const newBtn       = document.getElementById('new-note');
+  const editorIn     = document.querySelector('.editor-input');
+  const titleDisp    = document.getElementById('note-title-display');
+  const titleIn      = document.getElementById('note-title-input');
+  const idIn         = document.getElementById('note-id');
+  const saveLocalBtn = document.querySelector('.save-local-btn');
+  const notesList    = document.getElementById('notes-list');
 
-// 1) Toggle sidebar + mută hamburger
-const header    = document.querySelector('.header');
-const hamburger = document.getElementById('hamburger');
-const sidebar   = document.querySelector('.sidebar');
+  const LOCAL_KEY    = 'localNotes';
+  let localNotes     = JSON.parse(localStorage.getItem(LOCAL_KEY)) || [];
+  let currentLocalId = null;
 
-hamburger.addEventListener('click', () => {
-  const opening = !sidebar.classList.contains('open');
-  sidebar.classList.toggle('open', opening);
-  hamburger.classList.toggle('open', opening);
-  if (opening) header.appendChild(hamburger) && sidebar.appendChild(hamburger);
-  else header.appendChild(hamburger);
-});
-
-// 2) Note state
-const NOTES_KEY  = 'notes';
-let notes        = JSON.parse(localStorage.getItem(NOTES_KEY) || '[]');
-let showCount    = 4;
-let expanded     = false;
-
-// 3) Notes panel elements
-const notesList  = document.getElementById('notes-list');
-const toggleBtn  = document.getElementById('toggle-notes');
-const toggleLbl  = document.getElementById('toggle-label');
-const toggleArr  = document.getElementById('toggle-arrow');
-const newNoteBtn = document.getElementById('new-note');
-
-// 4) Render notes
-function renderNotes() {
-  notesList.innerHTML = '';
-  const count = expanded ? notes.length : Math.min(showCount, notes.length);
-  for (let i = 0; i < count; i++) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'panel-btn';
-    btn.textContent = notes[i].title || `Note ${i+1}`;
-    btn.addEventListener('click', () => {
-      window.location.href = `note.html?id=${i}`;
+  // 1) Rendează notițele din localStorage
+  function renderLocalNotes() {
+    document.querySelectorAll('.local-note-btn').forEach(b => b.remove());
+    localNotes.forEach(item => {
+      const btn = document.createElement('button');
+      btn.type        = 'button';
+      btn.className   = 'panel-btn local-note-btn';
+      btn.textContent = item.title;
+      btn.dataset.lid = item.id;
+      notesList.appendChild(btn);
+      btn.addEventListener('click', () => {
+        editorIn.value        = item.content;
+        titleDisp.textContent = item.title;
+        titleIn.value         = item.title;
+        currentLocalId        = item.id;
+      });
     });
-    notesList.appendChild(btn);
   }
-  if (notes.length > showCount) {
-    toggleBtn.style.display   = 'block';
-    toggleLbl.textContent     = expanded ? 'less' : 'more';
-    toggleArr.textContent     = expanded ? '∧' : '∨';
+
+  // 2) Initializează starea sidebar din localStorage
+  const wasOpen = localStorage.getItem('sidebarOpen') === 'true';
+  if (wasOpen) {
+    sidebar.classList.add('open');
+    hamburger.classList.add('open');
   } else {
-    toggleBtn.style.display = 'none';
+    sidebar.classList.remove('open');
+    hamburger.classList.remove('open');
   }
-}
 
-// 5) Toggle more/less
-toggleBtn.addEventListener('click', () => {
-  expanded = !expanded;
-  renderNotes();
+  // 3) Toggle sidebar + salvează starea
+  hamburger.addEventListener('click', () => {
+    const isOpen = sidebar.classList.toggle('open');
+    hamburger.classList.toggle('open', isOpen);
+    localStorage.setItem('sidebarOpen', isOpen);
+  });
+
+  // 4) “Create new note” → resetează editorul
+  newBtn.addEventListener('click', () => {
+    editorIn.value        = '';
+    titleDisp.textContent = 'Untitled note';
+    titleIn.value         = '';
+    currentLocalId        = null;
+  });
+
+  // 5) Save to LocalStorage (adaugă sau actualizează)
+  saveLocalBtn.addEventListener('click', () => {
+    let t = titleIn.value.trim() || prompt('Enter note title:', titleDisp.textContent) || '';
+    if (!t) return;
+    titleIn.value         = t;
+    titleDisp.textContent = t;
+    const content = editorIn.value;
+
+    if (currentLocalId) {
+      const idx = localNotes.findIndex(n => n.id === currentLocalId);
+      if (idx > -1) {
+        localNotes[idx].title   = t;
+        localNotes[idx].content = content;
+      }
+    } else {
+      const id = Date.now().toString();
+      localNotes.push({ id, title: t, content });
+      currentLocalId = id;
+    }
+
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(localNotes));
+    renderLocalNotes();
+  });
+
+  // 6) Init
+  renderLocalNotes();
 });
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebar   = document.querySelector('.sidebar');
+  const hamburger = document.getElementById('hamburger');
 
-// 6) Stub create
-newNoteBtn.addEventListener('click', () => {
-  console.log('Create new note – funcționalitate viitoare');
+  // Restore sidebar state from localStorage:
+  const wasOpen = localStorage.getItem('sidebarOpen') === 'true';
+  sidebar.classList.toggle('open',   wasOpen);
+  sidebar.classList.toggle('collapsed', !wasOpen);
+  hamburger.classList.toggle('open', wasOpen);
+
+  // Toggle on click:
+  hamburger.addEventListener('click', () => {
+    const isOpen = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', isOpen);
+    sidebar.classList.toggle('collapsed', !isOpen);
+    hamburger.classList.toggle('open', isOpen);
+    localStorage.setItem('sidebarOpen', isOpen);
+  });
 });
-
-// 7) Init
-renderNotes();

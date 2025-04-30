@@ -3,96 +3,115 @@ session_start();
 require 'config.php';
 
 // ─────────────────────────────────────────────────────────────
-// 0) Helpers
+// Helper: decriptează o notiță AES-256-CBC
 // ─────────────────────────────────────────────────────────────
-function decrypt_note($b64cipher, $b64iv) {
+function decrypt_note(string $b64cipher, string $b64iv): string {
     $cipher = base64_decode($b64cipher);
     $iv     = base64_decode($b64iv);
     return openssl_decrypt(
-      $cipher,
-      'AES-256-CBC',
-      ENCRYPTION_KEY,
-      OPENSSL_RAW_DATA,
-      $iv
+        $cipher,
+        'AES-256-CBC',
+        ENCRYPTION_KEY,
+        OPENSSL_RAW_DATA,
+        $iv
     );
 }
 
 // ─────────────────────────────────────────────────────────────
-// 1) Ensure user is logged in
-// ─────────────────────────────────────────────────────────────
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
-}
-$uid = $_SESSION['user_id'];
-
-// ─────────────────────────────────────────────────────────────
-// 2) Detect “pretty” slug from REQUEST_URI
+// 1) Detectăm “slug” pretty în URL
 // ─────────────────────────────────────────────────────────────
 $uri      = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$script   = $_SERVER['SCRIPT_NAME'];       // e.g. /webnote/index.php
-$basePath = rtrim(dirname($script), '/');  // e.g. /webnote
+$script   = $_SERVER['SCRIPT_NAME'];
+$basePath = rtrim(dirname($script), '/');
 $slug     = ltrim(substr($uri, strlen($basePath)), '/');
-
-// sanitize
-if ($slug === '' || strpos($slug, 'index.php') !== false) {
+if ($slug === '' || stripos($slug, 'index.php') !== false) {
     $slug = '';
 }
 
 // ─────────────────────────────────────────────────────────────
-// 3) If slug, attempt to load exactly that note for this user
+// 2) Încarcă notița inițială dacă slug există
 // ─────────────────────────────────────────────────────────────
 $initialNote = null;
+$uid = $_SESSION['user_id'] ?? null;
+
 if ($slug) {
+    // pri­vată (dacă ești logat)
+    if ($uid) {
+        $stmt = $pdo->prepare("
+            SELECT id, title, content, iv
+              FROM notes
+             WHERE slug = ? AND user_id = ?
+             LIMIT 1
+        ");
+        $stmt->execute([$slug, $uid]);
+        if ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $initialNote = [
+                'id'    => $r['id'],
+                'title' => $r['title'] ?: 'Untitled note',
+                'full'  => decrypt_note($r['content'], $r['iv']),
+                'slug'  => $slug,
+            ];
+        }
+    }
+    // publică (guest)
+    if (!$initialNote) {
+        $stmt = $pdo->prepare("
+            SELECT title, content, iv
+              FROM notes
+             WHERE slug = ? AND user_id = 0
+             LIMIT 1
+        ");
+        $stmt->execute([$slug]);
+        if ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $initialNote = [
+                'id'    => null,
+                'title' => $r['title'] ?: 'Untitled note',
+                'full'  => decrypt_note($r['content'], $r['iv']),
+                'slug'  => $slug,
+            ];
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3) Încarcă notițele private în sidebar (dacă ești logat)
+// ─────────────────────────────────────────────────────────────
+$notes = [];
+if ($uid) {
     $stmt = $pdo->prepare("
-      SELECT id, title, content, iv
-        FROM notes
-       WHERE slug = ?
-         AND user_id = ?
-       LIMIT 1
+        SELECT id, title, content, iv, slug
+          FROM notes
+         WHERE user_id = ?
+      ORDER BY created_at DESC
     ");
-    $stmt->execute([$slug, $uid]);
-    if ($row = $stmt->fetch()) {
-        $initialNote = [
-          'id'    => $row['id'],
-          'title' => $row['title'],
-          'full'  => decrypt_note($row['content'], $row['iv']),
-          'slug'  => $slug
+    $stmt->execute([$uid]);
+    while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $full    = decrypt_note($r['content'], $r['iv']);
+        $preview = mb_strimwidth($full, 0, 30, '…');
+        $notes[] = [
+            'id'      => $r['id'],
+            'title'   => $r['title'],
+            'preview' => $preview,
+            'full'    => $full,
+            'slug'    => $r['slug'],
         ];
     }
 }
 
 // ─────────────────────────────────────────────────────────────
-// 4) Load *all* notes (for the sidebar) and decrypt previews
+// 4) Încarcă profil (dacă ești logat)
 // ─────────────────────────────────────────────────────────────
-$notes = [];
-$stmt = $pdo->prepare("
-  SELECT id, title, content, iv, slug
-    FROM notes
-   WHERE user_id = ?
-ORDER BY created_at DESC
-");
-$stmt->execute([$uid]);
-while ($r = $stmt->fetch()) {
-    $full    = decrypt_note($r['content'], $r['iv']);
-    $preview = mb_strimwidth($full, 0, 30, '…');
-    $notes[] = [
-      'id'      => $r['id'],
-      'title'   => $r['title'],
-      'preview' => $preview,
-      'full'    => $full,
-      'slug'    => $r['slug']
-    ];
+$username = null;
+$imageUrl = null;
+if ($uid) {
+    $stmt = $pdo->prepare("SELECT username, image_url FROM users WHERE id = ?");
+    $stmt->execute([$uid]);
+    $u = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($u) {
+        $username = htmlspecialchars($u['username']);
+        $imageUrl = $u['image_url'] ? htmlspecialchars($u['image_url']) : null;
+    }
 }
-
-// ─────────────────────────────────────────────────────────────
-// 5) Load user profile info
-// ─────────────────────────────────────────────────────────────
-$stmt = $pdo->prepare("SELECT username, image_url FROM users WHERE id = ?");
-$stmt->execute([$uid]);
-$user       = $stmt->fetch();
-$username   = htmlspecialchars($user['username']);
-$imageUrl   = $user['image_url'] ? htmlspecialchars($user['image_url']) : null;
 ?>
 <!DOCTYPE html>
 <html lang="ro">
@@ -102,56 +121,57 @@ $imageUrl   = $user['image_url'] ? htmlspecialchars($user['image_url']) : null;
   <title>Webnote</title>
   <link rel="stylesheet" href="style.css">
   <script>
-    // Pass PHP data into JS
+    // server-side notes for JS
     const noteData = {
       <?php foreach ($notes as $n): ?>
       "<?= $n['id'] ?>": {
         id:    <?= json_encode($n['id']) ?>,
-        title: <?= json_encode($n['title']) ?>,
+        title: <?= json_encode($n['title']   ?: '') ?>,
         full:  <?= json_encode($n['full'])  ?>
       },
-      <?php if ($n['slug']): ?>
-      "<?= $n['slug'] ?>": {
-        id:    <?= json_encode($n['id']) ?>,
-        title: <?= json_encode($n['title']) ?>,
-        full:  <?= json_encode($n['full'])  ?>
-      },
-      <?php endif; ?>
       <?php endforeach; ?>
     };
     const initialNote = <?= json_encode($initialNote) ?>;
+    const isLogged    = <?= $uid ? 'true' : 'false' ?>;
   </script>
 </head>
 <body>
-  <!-- Hamburger (always on top) -->
+  <!-- Hamburger on top -->
   <button id="hamburger" class="hamburger">☰</button>
 
   <div class="container">
     <!-- SIDEBAR -->
     <aside class="sidebar collapsed">
       <div class="profile-card">
-        <div class="profile">
-          <?php if ($imageUrl): ?>
-            <img src="<?= $imageUrl ?>" class="profile-img" alt="Avatar">
-          <?php else: ?>
-            <div class="avatar"></div>
-          <?php endif; ?>
-          <span class="username">@<?= $username ?></span>
-          <button id="manage-btn" class="manage-btn"
-                  onclick="location.href='profile.php'">Manage</button>
-        </div>
+        <?php if ($username): ?>
+          <div class="profile">
+            <?php if ($imageUrl): ?>
+              <img src="<?= $imageUrl ?>" class="profile-img" alt="Avatar">
+            <?php else: ?>
+              <div class="avatar"></div>
+            <?php endif; ?>
+            <span class="username">@<?= $username ?></span>
+            <button id="manage-btn" class="manage-btn"
+                    onclick="location.href='profile.php'">Manage</button>
+          </div>
+        <?php else: ?>
+          <button id="login-btn" class="login-btn"
+                  onclick="location.href='login.php'">Login</button>
+        <?php endif; ?>
       </div>
       <hr>
+
+      <!-- Create & list notes ALWAYS -->
       <div class="notes-panel">
         <button id="new-note" class="panel-btn">Create new note</button>
         <div id="notes-list" class="notes-list">
+          <!-- server-side notes (if any) -->
           <?php foreach ($notes as $n): ?>
-            <button type="button"
-                    class="panel-btn note-btn"
-                    data-id="<?= $n['id'] ?>">
+            <button type="button" class="panel-btn note-btn" data-id="<?= $n['id'] ?>">
               <?= htmlspecialchars($n['title'] ?: $n['preview']) ?>
             </button>
           <?php endforeach; ?>
+          <!-- localStorage notes will be injected by JS -->
         </div>
       </div>
     </aside>
@@ -168,11 +188,8 @@ $imageUrl   = $user['image_url'] ? htmlspecialchars($user['image_url']) : null;
           <input type="hidden" name="title" id="note-title-input" value="">
 
           <button type="button" class="panel-btn save-note-btn">Save to account</button>
+          <button type="button" class="panel-btn save-local-btn">Save to LocalStorage</button>
           <button type="button" id="share-btn" class="panel-btn">Share</button>
-          <div id="share-panel" style="display:none;flex-direction:column;margin-top:.5rem;">
-            <input  id="share-slug" placeholder="Enter share code…" style="padding:.5rem;border:none;border-radius:4px">
-            <button type="button" id="share-save-btn" class="panel-btn" style="margin-top:.5rem;">Save</button>
-          </div>
 
           <textarea name="content"
                     class="editor-input"
@@ -184,79 +201,157 @@ $imageUrl   = $user['image_url'] ? htmlspecialchars($user['image_url']) : null;
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', ()=> {
-    const sidebar   = document.querySelector('.sidebar');
-    const ham       = document.getElementById('hamburger');
-    const newBtn    = document.getElementById('new-note');
-    const editorIn  = document.querySelector('.editor-input');
-    const titleDisp = document.getElementById('note-title-display');
-    const titleIn   = document.getElementById('note-title-input');
-    const idIn      = document.getElementById('note-id');
-    const slugIn    = document.getElementById('note-slug');
-    const saveBtn   = document.querySelector('.save-note-btn');
-    const shareBtn  = document.getElementById('share-btn');
-    const shareP    = document.getElementById('share-panel');
-    const shareSlug = document.getElementById('share-slug');
-    const shareSv   = document.getElementById('share-save-btn');
+  document.addEventListener('DOMContentLoaded', () => {
+    const sidebar    = document.querySelector('.sidebar');
+    const ham        = document.getElementById('hamburger');
+    const newBtn     = document.getElementById('new-note');
+    const editorIn   = document.querySelector('.editor-input');
+    const titleDisp  = document.getElementById('note-title-display');
+    const titleIn    = document.getElementById('note-title-input');
+    const idIn       = document.getElementById('note-id');
+    const saveBtn    = document.querySelector('.save-note-btn');
+    const saveLocal  = document.querySelector('.save-local-btn');
+    const shareBtn   = document.getElementById('share-btn');
+    const notesList  = document.getElementById('notes-list');
 
-    // A) Toggle sidebar
-    ham.addEventListener('click',()=>{
+    // --- Live auto‐save draft in localStorage ---
+    editorIn.addEventListener('input', () => {
+      localStorage.setItem('draftContent', editorIn.value);
+      localStorage.setItem('draftTitle', titleDisp.textContent);
+    });
+
+    // --- Load draft if any ---
+    const draftContent = localStorage.getItem('draftContent');
+    const draftTitle   = localStorage.getItem('draftTitle');
+    if (draftContent) editorIn.value = draftContent;
+    if (draftTitle)   titleDisp.textContent = draftTitle;
+
+    // --- Inject localStorage notes into sidebar ---
+    function loadLocalNotes() {
+      const raw = localStorage.getItem('localNotes');
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      arr.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'panel-btn local-note-btn';
+        btn.textContent = item.title;
+        btn.dataset.lid = item.id;
+        notesList.appendChild(btn);
+      });
+      // attach click handlers
+      document.querySelectorAll('.local-note-btn').forEach(b => {
+        b.addEventListener('click', () => {
+          const arr = JSON.parse(localStorage.getItem('localNotes')||'[]');
+          const it  = arr.find(x=>x.id==b.dataset.lid);
+          if (!it) return;
+          editorIn.value = it.content;
+          titleDisp.textContent = it.title;
+          titleIn.value = it.title;
+          idIn.value = '';
+        });
+      });
+    }
+    loadLocalNotes();
+
+    // --- Toggle sidebar ---
+    ham.addEventListener('click', () => {
       const open = sidebar.classList.toggle('open');
       sidebar.classList.toggle('collapsed', !open);
       ham.classList.toggle('open', open);
     });
 
-    // B) New note → reset
-    newBtn.addEventListener('click', ()=>{
+    // --- Create new note ---
+    newBtn.addEventListener('click', () => {
       editorIn.value        = '';
       titleDisp.textContent = 'Untitled note';
       titleIn.value         = '';
       idIn.value            = '';
-      slugIn.value          = '';
     });
 
-    // C) Load existing
-    document.querySelectorAll('.note-btn').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const id   = btn.dataset.id;
-        const d    = noteData[id] || { full:'', title:'' };
+    // --- Load server notes ---
+    document.querySelectorAll('.note-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = noteData[ btn.dataset.id ] || { full:'', title:'' };
         editorIn.value        = d.full;
         titleDisp.textContent = d.title || 'Untitled note';
         titleIn.value         = d.title;
         idIn.value            = d.id;
-        slugIn.value          = '';
       });
     });
 
-    // D) Save to account
-    saveBtn.addEventListener('click', ()=>{
-      let t = titleIn.value.trim() || prompt('Enter note title:', titleDisp.textContent);
+    // --- Save to account (or redirect if guest) ---
+    saveBtn.addEventListener('click', () => {
+      if (!isLogged) {
+        return window.location.href = 'login.php';
+      }
+      let t = titleIn.value.trim()
+            || prompt('Enter note title:', titleDisp.textContent);
       if (!t) return;
       titleIn.value         = t;
       titleDisp.textContent = t;
       document.getElementById('editor-form').submit();
     });
 
-    // E) Share panel
-    shareBtn.addEventListener('click',()=> {
-      shareP.style.display = shareP.style.display==='none'?'flex':'none';
-    });
-    shareSv.addEventListener('click',()=>{
-      const s = shareSlug.value.trim();
-      if (!s) return alert('Enter a share code.');
-      slugIn.value = s;
-      alert(`Share link:\n${location.origin}${window.location.pathname.replace(/[^/]+$/,'')}${encodeURIComponent(s)}`);
+    // --- Save to LocalStorage ---
+    saveLocal.addEventListener('click', () => {
+      let t = titleIn.value.trim()
+            || prompt('Enter note title:', titleDisp.textContent);
+      if (!t) return;
+      titleIn.value         = t;
+      titleDisp.textContent = t;
+      const content = editorIn.value;
+      // pull existing array
+      const key  = 'localNotes';
+      const raw  = localStorage.getItem(key);
+      const arr  = raw ? JSON.parse(raw) : [];
+      const id   = Date.now();  // simple unique
+      arr.push({ id, title: t, content });
+      localStorage.setItem(key, JSON.stringify(arr));
+      // reload menu
+      loadLocalNotes();
     });
 
-    // F) If PHP gave us an initialNote, load it
+    // --- Share (guest+user) ---
+    shareBtn.addEventListener('click', () => {
+      const code = prompt(
+        'Introdu numele notiței pentru share (ex. NotitaMEA):',
+        titleDisp.textContent
+      );
+      if (!code) return alert('Share cancelled');
+      // ensure draft saved
+      if (!editorIn.value.trim()) return alert('Nothing to share');
+      // show link
+      const base = window.location.origin +
+                   window.location.pathname.replace(/[^/]+$/,'');
+      alert(`Link-ul tău:\n${base}${encodeURIComponent(code.trim())}`);
+      // now trigger backend save with user_id=0:
+      // (we create a hidden form for share)
+      const f = document.createElement('form');
+      f.method = 'POST'; f.action = 'share_note.php';
+      ['content','title','slug'].forEach(name => {
+        const i = document.createElement('input');
+        i.type  = 'hidden';
+        i.name  = name;
+        i.value = name==='content'
+                ? editorIn.value
+                : name==='title'
+                  ? titleIn.value || titleDisp.textContent
+                  : code.trim();
+        f.appendChild(i);
+      });
+      document.body.appendChild(f);
+      f.submit();
+    });
+
+    // --- Load initialNote if provided ---
     if (initialNote) {
       editorIn.value        = initialNote.full;
       titleDisp.textContent = initialNote.title;
       titleIn.value         = initialNote.title;
-      idIn.value            = initialNote.id;
-      slugIn.value          = initialNote.slug;
+      idIn.value            = initialNote.id || '';
     }
   });
-  </script>
+  </script>  <script src="script.js"></script>
 </body>
 </html>

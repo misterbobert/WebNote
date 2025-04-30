@@ -314,9 +314,9 @@ body, html {
    Mută editor‐card în funcție de starea sidebar-ului
    ───────────────────────────────────────────── */
 :root {
-  --sidebar-width: 250px;       /* lățimea sidebar-ului când e deschis */
-  --editor-offset: 1rem;        /* distanța când sidebar e închis */
-  --gap-after-sidebar: 1rem;    /* distanța față de sidebar când e deschis */
+  --sidebar-width:    250px;
+  --editor-offset:     0.5rem;
+  --gap-after-sidebar: 0.5rem; /* distanța față de sidebar când e deschis */
 }
 
 /* card-ul din editor are tranziție pe margin-left */
@@ -388,9 +388,10 @@ body, html {
    2) Suprascrie dimensiunea editor-card
    ───────────────────────────────────────────── */
 .editor-card {
-  width: 80% !important;    /* 80% din lățimea zonei editor */
+  width: 90% !important;    /* 80% din lățimea zonei editor */
   height: 90% !important;  /* 100% din înălțimea zonei editor  AICIIIIIIIIIIIIIIII*/
   margin: 0 auto !important;/* centrare orizontală, fără margini sus/jos */
+ 
 }
 /* ─────────────────────────────────────────────
    Editor card responsive la sidebar + height 100% 
@@ -404,8 +405,7 @@ body, html {
     height: 100%;
     /* centru orizontal, dar păstrăm margin-left pentru toggle */
     margin-right: auto !important;
-    /* margin-left inițial (sidebar închis) */
-    margin-left: var(--editor-offset) !important;
+    /* margin-left inițial (sidebar închis) */ 
   
     display: flex;
     flex-direction: column;
@@ -435,10 +435,9 @@ body, html {
   width: 80%;                   /* 80% din zona editor */
   max-width: none;
   margin: 1rem 0;               /* spațiu sus/jos, centrat orizontal */
-  padding: 0.75rem 1rem;
+  margin: 1rem auto 0; 
   text-align: center;
-  /* poziționare după sidebar */
-  margin-left: var(--editor-offset);
+  /* poziționare după sidebar */ 
   transition: margin-left 0.25s ease;
 }
 
@@ -465,4 +464,29 @@ body, html {
   position: fixed;
   top: 1rem; left: 1rem;
   z-index: 3000;         /* butonul mereu deasupra tuturor */
+}
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 250px;
+  background: var(--clr-sidebar);
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+  z-index: 1100;
+  padding-top: 48px;
+}
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.editor {
+  flex: 1;
+  background: var(--clr-main);
+  padding: 1rem;
+  transition: margin-left 0.25s ease;
+  margin-left: 250px;
+}
+/* când sidebar e ascuns (collapsed), eliminăm offset-ul */
+.sidebar.collapsed + .editor {
+  margin-left: 0;
 }
