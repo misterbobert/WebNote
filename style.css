@@ -490,3 +490,550 @@ body, html {
 .sidebar.collapsed + .editor {
   margin-left: 0;
 }
+/* ─── SIDEBAR (flex container) ─────────────────────── */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  /* restul proprietăților tale */
+}
+
+/* ─── NOTES PANEL ──────────────────────────────────── */
+.notes-panel {
+  flex: 1;                   /* ocupă tot spațiul rămas */
+  display: flex;
+  flex-direction: column;
+  margin: 0 1rem;
+  gap: 0.5rem;
+}
+
+/* ─── NOTES LIST ───────────────────────────────────── */
+.notes-list {
+  flex: 1;                   /* crește pentru a umple .notes-panel */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  /* fără max-height sau overflow hidden */
+  overflow-y: auto;          /* scroll vertical automat */
+  padding-right: 0.25rem;    /* un pic de padding, ca butoanele să nu fie lipite de scroll */
+}
+
+/* ─── Stil simplu pentru scrollbar (optional) ─────── */
+.notes-list::-webkit-scrollbar {
+  width: 6px;
+}
+.notes-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 3px;
+}
+/* ───── Scrollbar personalizat pentru .notes-list ───── */
+/* Firefox */
+.notes-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 125, 50, 0.8) transparent;
+}
+
+/* WebKit (Chrome, Safari) */
+.notes-list::-webkit-scrollbar {
+  width: 6px;  
+}
+
+.notes-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notes-list::-webkit-scrollbar-thumb {
+  background-color: rgba(46, 125, 50, 0.8);
+  border-radius: 5px;    /* colțuri mai rotunjite */
+  border: 1px solid transparent; /* păstrează forma rotunjită fără margină vizibilă */
+}
+/* Notes panel – card verde cu scroll intern */
+.notes-panel {
+  background: rgba(46, 125, 50, 0.85);
+  border-radius: 12px;
+  padding: 1rem;
+  /* Înălțime maximă fixă (poți ajusta după nevoie) */
+  max-height: 400px;
+  overflow: hidden;
+}
+
+/* Lista de butoane din interiorul cardului */
+.notes-panel .notes-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* Ocupă tot spațiul rămas în card și devine scroll-abilă */
+  max-height: calc(100% - 2.5rem); /* 2.5rem aproximativ înălțimea butonului "Create new note" */
+  overflow-y: auto;
+  padding-right: 0.25rem; /* spațiu lângă scrollbar */
+}
+
+/* Scrollbar slim, colțuri rotunde și culoare verde închis */
+/* Firefox */
+.notes-panel .notes-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 100, 40, 0.8) transparent;
+}
+
+/* WebKit (Chrome, Safari) */
+.notes-panel .notes-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notes-panel .notes-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notes-panel .notes-list::-webkit-scrollbar-thumb {
+  background-color: rgba(34, 100, 40, 0.8);
+  border-radius: 5px;
+  border: 1px solid transparent;
+}
+/* ─── FRIENDS PANEL ────────────────────────────────── */
+.friends-panel {
+  background: var(--clr-panel);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem;
+  /* dimensiune maximă, ca să nu ocupe tot sidebar-ul */
+  max-height: 250px;
+  overflow: hidden;
+}
+
+/* Titlul secțiunii */
+.friends-panel .friends-title {
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+/* Linia de separare */
+.friends-panel .friends-separator {
+  border: none;
+  height: 1px;
+  background: var(--clr-text);
+  opacity: 0.2;
+  margin: 0 0 0.75rem;
+}
+
+/* Lista de prieteni */
+.friends-panel .friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* ocupă restul de spațiu din .friends-panel și devine scroll-abilă */
+  max-height: calc(100% - 2.5rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+/* scrollbar slim și colțuri rotunde */
+.friends-panel .friends-list::-webkit-scrollbar {
+  width: 6px;
+}
+.friends-panel .friends-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.friends-panel .friends-list::-webkit-scrollbar-thumb {
+  background-color: rgba(46, 125, 50, 0.8);
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+/* pentru Firefox */
+.friends-panel .friends-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(46, 125, 50, 0.8) transparent;
+}
+
+/* Fiecare element (friend) */
+.friends-panel .friend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: var(--clr-main);
+  border-radius: 8px;
+}
+
+/* Avatar-ul prietenului */
+.friends-panel .friend-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255,255,255,0.1); /* fallback dacă nu e imagine */
+}
+
+/* Numele prietenului */
+.friends-panel .friend-name {
+  font-size: 0.9rem;
+  color: var(--clr-text);
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* ─────────────────────────────────────────────
+   FRIENDS PANEL
+───────────────────────────────────────────── */
+.friends-panel {
+  background: rgba(52,73,85,0.85);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem;
+  color: var(--clr-text);
+}
+
+.friends-panel h3 {
+  text-align: center;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.friends-divider {
+  border: none;
+  height: 1px;
+  background: #fff;
+  opacity: 0.3;
+  margin: 0.5rem 0;
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* dacă vrei scroll intern: */
+  /* max-height: 200px; overflow-y: auto; */
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--clr-panel);
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.friend-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.friend-name {
+  font-size: 0.9rem;
+}
+
+/* ─────────────────────────────────────────────
+   ADD FRIENDS BUTTON
+───────────────────────────────────────────── */
+.add-friend-btn {
+  width: 100%;
+  background: rgba(34,100,40,0.85);
+  border: none;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+
+.add-friend-btn:hover {
+  background: rgba(34,100,40,1);
+}
+/* ─── Butonul clopoţel ───────────────────────────────── */
+.notif-btn {
+  background: none;
+  border: none;
+  color: var(--clr-text);
+  font-size: 1.25rem;
+  cursor: pointer;
+  position: absolute;
+  top: 1rem;    /* să se aşeze sub padding-ul sidebar-ului */
+  right: 1rem;
+  z-index: 5000;
+}
+
+/* ─── Panoul de notificări ─────────────────────────────── */
+.notif-panel {
+  position: absolute;
+  top: 3.5rem;
+  right: 1rem;
+  width: 240px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--clr-sidebar);
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 5000;
+}
+
+/* ─── Fiecare notificare ───────────────────────────────── */
+.notif-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+.notif-item:last-child {
+  border-bottom: none;
+}
+.notif-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 0.5rem;
+}
+.notif-text {
+  flex: 1;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+/* ─── Butoanele Accept/Reject ─────────────────────────── */
+.notif-actions .btn {
+  background: var(--clr-panel);
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  margin-left: 0.25rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--clr-text);
+  transition: background 0.25s;
+}
+.notif-actions .btn:hover {
+  background: var(--clr-hover);
+}
+
+/* ─── Mesaj când nu sunt notificări ─────────────────── */
+.notif-empty {
+  text-align: center;
+  font-size: 0.9rem;
+  opacity: 0.7;
+  padding: 1rem 0;
+}
+/* make .friend-item a flex container */
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+/* the little chat icon button */
+.chat-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--clr-text);
+}
+
+/* chat panel container */
+.chat-panel {
+  position: fixed;
+  top: 4rem;             /* just below your top controls */
+  right: 1rem;
+  width: 280px;
+  height: 400px;
+  background: var(--clr-panel);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  overflow: hidden;
+  z-index: 2000;
+}
+
+/* header with “Chat with …” and close button */
+.chat-header {
+  background: var(--clr-sidebar);
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--clr-text);
+  font-weight: bold;
+}
+.chat-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--clr-text);
+}
+
+/* message area */
+.chat-messages {
+  flex: 1;
+  padding: 0.75rem;
+  background: var(--clr-main);
+  overflow-y: auto;
+}
+
+/* input row */
+.chat-input-area {
+  display: flex;
+  padding: 0.5rem;
+  background: var(--clr-panel);
+}
+.chat-input-area textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-family: inherit;
+}
+.chat-send {
+  margin-left: 0.5rem;
+  border: none;
+  background: var(--clr-hover);
+  border-radius: 4px;
+  padding: 0 1rem;
+  cursor: pointer;
+  color: var(--clr-text);
+}
+/* make the chat textarea look like your editor-input */
+.chat-input-area textarea {
+  background: rgba(255,255,255,0.2);    /* same semi-transparent white */
+  color: var(--clr-text);
+  border: none;
+  border-radius: 8px;                   /* same roundness */
+  padding: 0.75rem;                     /* match other inputs */
+  font-size: 1rem;
+  font-family: system-ui, sans-serif;
+  resize: none;
+}
+
+/* style the SEND button like your panel-btn */
+.chat-send {
+  background: var(--clr-panel);
+  color: var(--clr-text);
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.chat-send:hover {
+  background: var(--clr-hover);
+}
+/* ─── Chat panel ─────────────────────────────────── */
+.chat-panel {
+  position: fixed;
+  top: 48px;                    /* sub bara de top (dacă ai una) */
+  left: 250px;                  /* fix lângă sidebar-ul deschis */
+  bottom: 0;
+  width: 350px;                 /* cât vrei tu */
+  background: var(--clr-main);
+  display: none;                /* ascuns implicit */
+  flex-direction: column;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  z-index: 1200;
+  overflow: hidden;
+}
+
+/* când are clasa open, devine vizibil */
+.chat-panel.open {
+  display: flex;
+}
+
+/* header-ul chat-ului cu butonul X */
+.chat-panel .chat-header {
+  background: var(--clr-panel);
+  padding: 0.75rem 1rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* corpul chat-ului */
+.chat-panel .chat-body {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* footer cu input + SEND */
+.chat-panel .chat-footer {
+  padding: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  background: var(--clr-panel);
+}
+
+.chat-panel .chat-footer textarea {
+  flex: 1;
+  background: rgba(255,255,255,0.2);
+  color: var(--clr-text);
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  resize: none;
+}
+
+.chat-panel .chat-footer .chat-send {
+  background: var(--clr-panel);
+  color: var(--clr-text);
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.25s ease;
+}
+.chat-panel .chat-footer .chat-send:hover {
+  background: var(--clr-hover);
+}
+/* ─── Chat messages ───────────────────────────────── */
+.chat-panel {
+  display: none;           /* ascuns implicit */
+  flex-direction: column;
+}
+.chat-panel.open {
+  display: flex;
+}
+
+/* corpul ferestrei de chat */
+.chat-panel .chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* mesajele trimise (outgoing) */
+.chat-message-outgoing {
+  align-self: flex-end;
+  background: var(--clr-panel);
+  color: var(--clr-text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin: 0.25rem 0 0.25rem 0.5rem;
+  max-width: 80%;
+}
+
+/* mesajele primite (incoming) */
+.chat-message-incoming {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.2);
+  color: var(--clr-text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin: 0.25rem 0.5rem 0.25rem 0;
+  max-width: 80%;
+}

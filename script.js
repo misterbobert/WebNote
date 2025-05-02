@@ -113,3 +113,60 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.error('SW registration failed:', err));
   });
 }
+// –––––––––––––––––––––––––––––––––––––––––––––––––––––
+// Notificări friend-request
+const notifBtn   = document.getElementById('notif-btn');
+const notifPanel = document.getElementById('notif-panel');
+
+// toggle panel
+notifBtn.addEventListener('click', () => {
+  notifPanel.style.display =
+    notifPanel.style.display === 'none' ? 'block' : 'none';
+});
+
+// helper pentru fetch JSON
+async function postJSON(url, data) {
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify(data)
+  });
+  return resp.json();
+}
+
+// acceptă cererea
+notifPanel.querySelectorAll('.notif-accept').forEach(btn => {
+  btn.addEventListener('click', async e => {
+    const item = e.target.closest('.notif-item');
+    const frId = item.dataset.frId;
+    const result = await postJSON('respond_friend_request.php', {
+      fr_id: frId, action: 'accept'
+    });
+    if (result.success) {
+      // elimină din listă
+      item.remove();
+      // adaugă în card-ul de Friends
+      const friendsList = document.getElementById('friends-list');
+      const avatar = item.querySelector('.notif-avatar').cloneNode();
+      const newBtn = document.createElement('button');
+      newBtn.className = 'panel-btn friend-btn';
+      newBtn.textContent = result.username;
+      newBtn.prepend(avatar);
+      friendsList.appendChild(newBtn);
+    }
+  });
+});
+
+// respinge cererea
+notifPanel.querySelectorAll('.notif-reject').forEach(btn => {
+  btn.addEventListener('click', async e => {
+    const item = e.target.closest('.notif-item');
+    const frId = item.dataset.frId;
+    const result = await postJSON('respond_friend_request.php', {
+      fr_id: frId, action: 'decline'
+    });
+    if (result.success) {
+      item.remove();
+    }
+  });
+});
