@@ -264,7 +264,6 @@ if ($uid) {
           <button type="button" class="panel-btn save-note-btn">Save to account</button>
           <button type="button" class="panel-btn save-local-btn">Save to LocalStorage</button>
           <button type="button" id="share-btn" class="panel-btn">Share</button>
-
           <textarea name="content"
                     class="editor-input"
                     placeholder="Type your note here…"
@@ -339,163 +338,51 @@ if ($uid) {
       </div>
     </div>
   </div>
-
   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ──────────────────────────────────────────────────────────────
-  // grab your elements
-  // ──────────────────────────────────────────────────────────────
-  const sidebar      = document.querySelector('.sidebar');
-  const ham          = document.getElementById('hamburger');
-  const newNoteBtn   = document.getElementById('new-note');
-  const editorInput  = document.querySelector('.editor-input');
-  const titleDisplay = document.getElementById('note-title-display');
-  const titleInput   = document.getElementById('note-title-input');
-  const slugInput    = document.getElementById('note-slug');
-  const saveBtn      = document.querySelector('.save-note-btn');
-  const saveLocalBtn = document.querySelector('.save-local-btn');
-  const shareBtn     = document.getElementById('share-btn');
-  const notesList    = document.getElementById('notes-list');
-  const notifBtn     = document.getElementById('notif-btn');
-  const notifPanel   = document.getElementById('notif-panel');
-  const addFriendBtn = document.getElementById('add-friend-btn');
-  const friendsList  = document.querySelector('.friends-list');
-  const chatPanel    = document.getElementById('chat-panel');
-  const chatTitle    = document.getElementById('chat-with');
-  const chatClose    = document.getElementById('chat-close-btn');
-  const chatBody     = document.getElementById('chat-body');
-  const chatInput    = document.getElementById('chat-input');
-  const chatSend     = document.getElementById('chat-send');
+  const chatSend  = document.getElementById('chat-send');
+  const chatInput = document.getElementById('chat-input');
+  const chatWith  = document.getElementById('chat-with');
+  const chatBody  = document.getElementById('chat-body');
 
-  // share modal fields
-  const shareModal    = document.getElementById('share-modal');
-  const shareSlug     = document.getElementById('share-slug');
-  const shareContent  = document.getElementById('share-content');
-  const shareTitle    = document.getElementById('share-title');
-  const shareEditable = document.getElementById('share-editable');
-  const shareCancel   = document.getElementById('share-cancel');
-  const shareConfirm  = document.getElementById('share-confirm');
+  // Send on button click
+  chatSend.addEventListener('click', () => {
+    const text = chatInput.value.trim();
+    const toId = chatWith.dataset.userId;
+    if (!toId || !text) return;
 
-  // save‐to‐account modal
-  const saModal       = document.getElementById('save-account-modal');
-  const saInput       = document.getElementById('save-account-title');
-  const saCancel      = document.getElementById('save-account-cancel');
-  const saConfirm     = document.getElementById('save-account-confirm');
-
-  // save‐to‐local modal
-  const slModal       = document.getElementById('save-local-modal');
-  const slInput       = document.getElementById('save-local-title');
-  const slCancel      = document.getElementById('save-local-cancel');
-  const slConfirm     = document.getElementById('save-local-confirm');
-
-  let currentChatUserId = null;
-
-  // ──────────────────────────────────────────────────────────────
-  // inject any loaded note into the editor
-  // ──────────────────────────────────────────────────────────────
-  if (initialNote) {
-    editorInput.value        = initialNote.full;
-    titleDisplay.textContent = initialNote.title;
-    titleInput.value         = initialNote.title;
-    slugInput.value          = initialNote.slug;
-  }
-
-  // ──────────────────────────────────────────────────────────────
-  // dynamic Share ↔ Save button
-  // ──────────────────────────────────────────────────────────────
-  if (initialNote && initialNote.slug) {
-    if (initialNote.editable) {
-      // turn “Share” into “Save”
-      shareBtn.textContent = 'Save';
-      shareBtn.addEventListener('click', () => {
-        fetch('update_shared_note.php', {
-          method: 'POST',
-          headers: {'Content-Type':'application/x-www-form-urlencoded'},
-          body: `slug=${encodeURIComponent(initialNote.slug)}&content=${encodeURIComponent(editorInput.value)}`
-        })
-        .then(r => {
-          if (!r.ok) throw new Error(r.statusText);
-          // you could flash “Saved!” here
-        })
-        .catch(err => alert('Eroare la salvare: ' + err));
-      });
-    } else {
-      // read‐only: hide the button
-      shareBtn.style.display = 'none';
-    }
-  } else {
-    // normal private/new note → open share modal
-    shareBtn.addEventListener('click', openShareModal);
-  }
-
-  function openShareModal() {
-    shareSlug.value        = titleDisplay.textContent.replace(/\s+/g,'');
-    shareEditable.checked  = false;
-    shareContent.value     = editorInput.value;
-    shareTitle.value       = titleInput.value || titleDisplay.textContent;
-    shareModal.style.display = 'flex';
-  }
-  shareCancel.addEventListener('click', () => shareModal.style.display = 'none');
-  shareConfirm.addEventListener('click', () => {
-    const slug     = shareSlug.value.trim();
-    const editable = shareEditable.checked ? 1 : 0;
-    if (!slug) return alert('Trebuie un nume de link.');
-    shareModal.style.display = 'none';
-    const params = new URLSearchParams({content: editorInput.value, title: titleInput.value||titleDisplay.textContent, slug, editable});
-    fetch('share_note.php', {
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: params.toString()
+    fetch('send_message.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    `to=${encodeURIComponent(toId)}&content=${encodeURIComponent(text)}`
     })
-    .then(r=>r.json())
-    .then(json=>{
-      if (json.link) {
-        prompt('Link-ul tău (copie de aici):', json.link);
-        window.location.href = json.link;
-      } else {
-        alert('Eroare la share: '+(json.error||''));
+    .then(r => r.json())
+    .then(json => {
+      if (!json.success) {
+        return alert(json.error || 'Eroare la trimitere');
       }
+      // append the new message bubble
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-message-outgoing';
+      bubble.textContent = text;
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      chatInput.value = '';
     })
-    .catch(()=>alert('Eroare de rețea.'));
+    .catch(() => alert('Eroare de rețea'));
   });
 
-  // ──────────────────────────────────────────────────────────────
-  // (rest of your existing handlers: sidebar toggle, new‐note,
-  // load‐note buttons, save‐to‐account modal, save‐to‐local modal,
-  // friend‐requests, chat pop‐up, service worker…)
-  // ──────────────────────────────────────────────────────────────
-  // … copy/paste all your other listeners here unchanged …
-
-});// grab sidebar & hamburger
-const sidebar = document.querySelector('.sidebar');
-const ham     = document.getElementById('hamburger');
-
-// restore persisted state on load
-const wasOpen = localStorage.getItem('sidebarOpen') === 'true';
-sidebar.classList.toggle('open', wasOpen);
-sidebar.classList.toggle('collapsed', !wasOpen);
-ham.classList.toggle('open', wasOpen);
-
-// attach click handler
-ham.addEventListener('click', () => {
-  const open = sidebar.classList.toggle('open');
-  sidebar.classList.toggle('collapsed', !open);
-  ham.classList.toggle('open', open);
-  localStorage.setItem('sidebarOpen', open);
+  // Also send on Enter (no Shift)
+  chatInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      chatSend.click();
+    }
+  });
 });
-
-</script>
-
-<script>
-  // at the very bottom, re-publish initialNote into JS:
-  window.initialNote = <?= json_encode([
-    'slug'     => $initialNote['slug']     ?? null,
-    'full'     => $initialNote['full']     ?? '',
-    'title'    => $initialNote['title']    ?? '',
-    'editable' => (int)($initialNote['editable'] ?? 0),
-  ], JSON_HEX_TAG) ?>;
 </script>
 
 
+   <script src="script.js"></script> 
 </body>
 </html>
