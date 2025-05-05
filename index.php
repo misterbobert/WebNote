@@ -257,18 +257,23 @@ if ($uid) {
         <h2 id="note-title-display">Untitled note</h2>
       </div>
       <div class="editor-card">
-        <form id="editor-form" action="save_note.php" method="post">
-          <input type="hidden" id="note-id"    name="id">
-          <input type="hidden" id="note-slug"  name="slug">
-          <input type="hidden" id="note-title-input" name="title">
-          <button type="button" class="panel-btn save-note-btn">Save to account</button>
-          <button type="button" class="panel-btn save-local-btn">Save to LocalStorage</button>
-          <button type="button" id="share-btn" class="panel-btn">Share</button>
-          <textarea name="content"
-                    class="editor-input"
-                    placeholder="Type your note here…"
-                    required></textarea>
-        </form>
+      <form id="editor-form" action="save_note.php" method="post">
+  <!-- aici pui câmpurile ascunse -->
+  <input type="hidden" id="note-id" name="id" value="<?= $initialNote['id'] ?>">
+<input type="hidden" id="note-slug" name="slug" value="<?= htmlspecialchars($initialNote['slug']) ?>">
+<input type="hidden" id="note-title-input" name="title" value="<?= htmlspecialchars($initialNote['title']) ?>">
+<input type="hidden" id="local-id" name="localId">
+
+  <button type="button" class="panel-btn save-note-btn">Save to account</button>
+  <button type="button" class="panel-btn save-local-btn">Save to LocalStorage</button>
+  <button type="button" id="share-btn" class="panel-btn">Share</button>
+  <button type="button" id="delete-btn" class="panel-btn delete-btn" style="background-color:#e74c3c; color:#fff; margin-left:0.5rem">
+    Delete
+  </button>
+
+  <textarea name="content" class="editor-input" placeholder="Type your note here…" required></textarea>
+</form>
+
       </div>
     </main>
   </div>
@@ -302,9 +307,15 @@ if ($uid) {
         <input type="hidden" name="content" id="share-content">
         <input type="hidden" name="title"   id="share-title">
         <div class="modal-actions" style="margin-top:1rem;">
-          <button type="button" id="share-cancel" class="panel-btn">Cancel</button>
-          <button type="submit"          class="panel-btn">Share</button>
+          <button type="button" id="share-cancel" class="panel-btn">Cancel</button><button type="submit" id="share-confirm" class="panel-btn">Share</button>
+
         </div>
+          <!-- … restul share-modal … -->
+  <div id="send-to-friend" style="margin-top:1.5rem; border-top:1px solid #ccc; padding-top:1rem;">
+    <h4>SEND TO FRIEND</h4>
+    <div id="send-friends-list" style="max-height:200px; overflow:auto;"></div>
+  </div>
+
       </form>
     </div>
   </div>
@@ -340,28 +351,88 @@ if ($uid) {
   </div>
   <script>
 document.addEventListener('DOMContentLoaded', () => {
-  const chatSend  = document.getElementById('chat-send');
-  const chatInput = document.getElementById('chat-input');
-  const chatWith  = document.getElementById('chat-with');
-  const chatBody  = document.getElementById('chat-body');
+  // ─── Toate elementele ─────────────────────────────────────────
+  const sidebar       = document.querySelector('.sidebar');
+  const ham           = document.getElementById('hamburger');
+  const newNoteBtn    = document.getElementById('new-note');
+  const editorInput   = document.querySelector('.editor-input');
+  const titleDisplay  = document.getElementById('note-title-display');
+  const titleInput    = document.getElementById('note-title-input');
+  const slugInput     = document.getElementById('note-slug');
+  const idInput       = document.getElementById('note-id');
+  const saveBtn       = document.querySelector('.save-note-btn');
+  const saveLocalBtn  = document.querySelector('.save-local-btn');
+  const shareBtn      = document.getElementById('share-btn');
+  const deleteBtn     = document.getElementById('delete-btn');
+  const notesList     = document.getElementById('notes-list');
+  const notifBtn      = document.getElementById('notif-btn');
+  const notifPanel    = document.getElementById('notif-panel');
+  const addFriendBtn  = document.getElementById('add-friend-btn');
+  const friendsList   = document.querySelector('.friends-list');
+  const chatPanel     = document.getElementById('chat-panel');
+  const chatTitle     = document.getElementById('chat-with');
+  const chatClose     = document.getElementById('chat-close-btn');
+  const chatBody      = document.getElementById('chat-body');
+  const chatInput     = document.getElementById('chat-input');
+  const chatSend      = document.getElementById('chat-send');
 
-  // Send on button click
-  chatSend.addEventListener('click', () => {
-    const text = chatInput.value.trim();
-    const toId = chatWith.dataset.userId;
-    if (!toId || !text) return;
+  // ─── Demo inject initialNote ──────────────────────────────────
+  if (window.initialNote) {
+    editorInput.value        = initialNote.full;
+    titleDisplay.textContent = initialNote.title;
+    titleInput.value         = initialNote.title;
+    slugInput.value          = initialNote.slug;
+    idInput.value            = initialNote.id || '';
+  }
 
-    fetch('send_message.php', {
+  // ─── DELETE handler ───────────────────────────────────────────
+  deleteBtn.addEventListener('click', () => {
+    const noteId = idInput.value.trim();
+    const slug   = slugInput.value.trim();
+    if (!noteId && !slug) {
+      return alert('Nu există nicio notă de șters.');
+    }
+    if (!confirm('Ești sigur că vrei să ștergi această notă?')) {
+      return;
+    }
+    const body = noteId
+      ? `id=${encodeURIComponent(noteId)}`
+      : `slug=${encodeURIComponent(slug)}`;
+    fetch('delete_note.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    `to=${encodeURIComponent(toId)}&content=${encodeURIComponent(text)}`
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body
     })
     .then(r => r.json())
     .then(json => {
-      if (!json.success) {
-        return alert(json.error || 'Eroare la trimitere');
+      if (json.success) {
+        alert('Notă ștearsă cu succes.');
+        editorInput.value = '';
+        titleDisplay.textContent = 'Untitled note';
+        titleInput.value = '';
+        slugInput.value = '';
+        idInput.value   = '';
+        location.reload();
+      } else {
+        alert('Eroare la ștergere: ' + (json.error||''));
       }
-      // append the new message bubble
+    })
+    .catch(() => alert('Eroare de rețea la ștergere.'));
+  });
+
+  // ─── CHAT SEND handler ────────────────────────────────────────
+  chatSend.addEventListener('click', () => {
+    const text = chatInput.value.trim();
+    const toId = chatTitle.dataset.userId;
+    if (!text || !toId) return;
+    fetch('send_message.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `to=${encodeURIComponent(toId)}&content=${encodeURIComponent(text)}`
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (!json.success) return alert(json.error||'Eroare la trimitere');
       const bubble = document.createElement('div');
       bubble.className = 'chat-message-outgoing';
       bubble.textContent = text;
@@ -371,13 +442,326 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .catch(() => alert('Eroare de rețea'));
   });
-
-  // Also send on Enter (no Shift)
   chatInput.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       chatSend.click();
     }
+  }); 
+  const idInput     = document.getElementById('note-id');
+  const slugInput   = document.getElementById('note-slug');
+  const editorInput = document.querySelector('.editor-input');
+  const titleDisplay= document.getElementById('note-title-display');
+  const titleInput  = document.getElementById('note-title-input');
+
+  // … aici urmează toate celelalte handler-e pe care le-ai adăugat deja …
+
+  // ───── handler pentru DELETE ─────
+  deleteBtn.addEventListener('click', () => {
+    const noteId = idInput.value.trim();
+    const slug   = slugInput.value.trim();
+    if (!noteId && !slug) {
+      return alert('Nu există nicio notă de şters.');
+    }
+    if (!confirm('Eşti sigur că vrei să ştergi această notă?')) {
+      return;
+    }
+    const body = noteId
+      ? `id=${encodeURIComponent(noteId)}`
+      : `slug=${encodeURIComponent(slug)}`;
+    fetch('delete_note.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (json.success) {
+        alert('Notă ștearsă cu succes.');
+        editorInput.value = '';
+        titleDisplay.textContent = 'Untitled note';
+        titleInput.value = '';
+        slugInput.value = '';
+        idInput.value   = '';
+        location.reload();
+      } else {
+        alert('Eroare la ştergere: ' + (json.error||''));
+      }
+    })
+    .catch(() => alert('Eroare de rețea la ștergere.'));
+  });
+
+  // ───── handler pentru SEND în chat ─────
+  const chatSend  = document.getElementById('chat-send');
+  const chatInput = document.getElementById('chat-input');
+  const chatWith  = document.getElementById('chat-with');
+  const chatBody  = document.getElementById('chat-body');
+  chatSend.addEventListener('click', () => {
+    const text = chatInput.value.trim();
+    const toId = chatWith.dataset.userId;
+    if (!text || !toId) return;
+    fetch('send_message.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: `to=${encodeURIComponent(toId)}&content=${encodeURIComponent(text)}`
+    })
+    .then(r => r.json())
+    .then(json => {
+      if (!json.success) return alert(json.error||'Eroare la trimitere');
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-message-outgoing';
+      bubble.textContent = text;
+      chatBody.appendChild(bubble);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      chatInput.value = '';
+    })
+    .catch(() => alert('Eroare de rețea'));
+  });
+  chatInput.addEventListener('keydown', e => {
+    if (e.key==='Enter' && !e.shiftKey) {
+      e.preventDefault();
+      chatSend.click();
+    }
+  });
+
+  // … restul listener-elor (share, friend-request, sidebar, etc.) …
+});
+
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const notesList    = document.getElementById('notes-list'); 
+  const localIdInput = document.getElementById('local-id');
+  const idInput      = document.getElementById('note-id');
+  const slugInput    = document.getElementById('note-slug');
+  const titleDisplay = document.getElementById('note-title-display');
+  const titleInput   = document.getElementById('note-title-input');
+  const editorInput  = document.querySelector('.editor-input');
+  const saveLocalBtn = document.querySelector('.save-local-btn');
+
+  function loadLocalNotes() {
+    document.querySelectorAll('.local-note-btn').forEach(b => b.remove());
+    const arr = JSON.parse(localStorage.getItem('localNotes')||'[]');
+    arr.forEach(item => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'panel-btn local-note-btn';
+      b.textContent = item.title;
+      b.dataset.lid = item.id;
+      notesList.appendChild(b);
+      b.addEventListener('click', () => {
+        localIdInput.value = item.id;
+        idInput.value = '';
+        slugInput.value = '';
+        editorInput.value = item.content;
+        titleDisplay.textContent = item.title;
+        titleInput.value = item.title;
+      });
+    });
+  }
+  loadLocalNotes();
+
+  saveLocalBtn.addEventListener('click', () => {
+    localIdInput.value = '';
+  });
+
+  deleteBtn.addEventListener('click', () => {
+    const srvId = idInput.value.trim();
+    const slug  = slugInput.value.trim();
+    const locId = localIdInput.value.trim();
+
+    // pe server
+    if (srvId || slug) {
+      if (!confirm('Ștergi nota de pe server?')) return;
+      const body = srvId
+        ? `id=${encodeURIComponent(srvId)}`
+        : `slug=${encodeURIComponent(slug)}`;
+      fetch('delete_note.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body
+      })
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) location.reload();
+        else alert('Eroare: '+(j.error||''));
+      })
+      .catch(()=>alert('Eroare de rețea'));
+      return;
+    }
+
+    // localStorage
+    if (locId) {
+      if (!confirm('Ștergi nota locală?')) return;
+      let arr = JSON.parse(localStorage.getItem('localNotes')||'[]');
+      arr = arr.filter(n => String(n.id)!==locId);
+      localStorage.setItem('localNotes', JSON.stringify(arr));
+      alert('Notă locală ștearsă.');
+      editorInput.value = '';
+      titleDisplay.textContent = 'Untitled note';
+      titleInput.value = '';
+      localIdInput.value = '';
+      loadLocalNotes();
+      return;
+    }
+
+    alert('Nu există nicio notă de șters.');
+  });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // referinţe
+  const notesList    = document.getElementById('notes-list');
+  const deleteBtn    = document.getElementById('delete-btn');
+  const saveLocalBtn = document.querySelector('.save-local-btn');
+  const localIdInput = document.getElementById('local-id');
+  const idInput      = document.getElementById('note-id');
+  const slugInput    = document.getElementById('note-slug');
+  const titleDisplay = document.getElementById('note-title-display');
+  const titleInput   = document.getElementById('note-title-input');
+  const editorInput  = document.querySelector('.editor-input');
+
+  // încărcare butoane localStorage
+  function loadLocalNotes() {
+    document.querySelectorAll('.local-note-btn').forEach(b => b.remove());
+    const arr = JSON.parse(localStorage.getItem('localNotes')||'[]');
+    arr.forEach(item => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'panel-btn local-note-btn';
+      b.textContent = item.title; b.dataset.lid = item.id;
+      notesList.appendChild(b);
+      b.addEventListener('click', () => {
+        localIdInput.value    = item.id;
+        idInput.value         = '';
+        slugInput.value       = '';
+        editorInput.value     = item.content;
+        titleDisplay.textContent = item.title;
+        titleInput.value         = item.title;
+      });
+    });
+  }
+  loadLocalNotes();
+
+  // dacă porneşti salvarea local, resetăm contextul
+  saveLocalBtn.addEventListener('click', () => {
+    localIdInput.value = '';
+  });
+
+  // DELETE (fie pe server, fie din localStorage)
+  deleteBtn.addEventListener('click', () => {
+    const srvId = idInput.value.trim();
+    const slug  = slugInput.value.trim();
+    const locId = localIdInput.value.trim();
+
+    // 1) DELETE pe server
+    if (srvId || slug) {
+      if (!confirm('Ștergi nota de pe server?')) return;
+      const body = srvId
+        ? `id=${encodeURIComponent(srvId)}`
+        : `slug=${encodeURIComponent(slug)}`;
+      fetch('delete_note.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body
+      })
+      .then(r => r.json())
+      .then(j => {
+        if (j.success) location.reload();
+        else alert('Eroare server: '+(j.error||''));
+      })
+      .catch(()=>alert('Eroare de rețea'));
+      return;
+    }
+
+    // 2) DELETE din localStorage
+    if (locId) {
+      if (!confirm('Ștergi nota locală?')) return;
+      let arr = JSON.parse(localStorage.getItem('localNotes')||'[]');
+      arr = arr.filter(n => String(n.id)!==locId);
+      localStorage.setItem('localNotes', JSON.stringify(arr));
+      alert('Notă locală ștearsă.');
+      editorInput.value        = '';
+      titleDisplay.textContent = 'Untitled note';
+      titleInput.value         = '';
+      localIdInput.value       = '';
+      loadLocalNotes();
+      return;
+    }
+
+    // 3) nimic de şters
+    alert('Nu există nicio notă de șters.');
+  });
+
+  // SHARE modal
+  const shareBtn     = document.getElementById('share-btn');
+  const shareCancel  = document.getElementById('share-cancel');
+  const shareConfirm = document.getElementById('share-confirm');
+  const shareModal   = document.getElementById('share-modal');
+
+  shareBtn.addEventListener('click', () => {
+    shareModal.style.display = 'flex';
+  });
+  shareCancel.addEventListener('click', () => {
+    shareModal.style.display = 'none';
+  });
+  shareConfirm.addEventListener('click', e => {
+    e.preventDefault();
+    // aici pui logica ta de AJAX pentru share…
+  });
+
+  // … alte handler-e (chat, notifications etc.) …
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const shareBtn     = document.getElementById('share-btn');
+  const shareModal   = document.getElementById('share-modal');
+  const sendList     = document.getElementById('send-friends-list');
+  const friends      = window.friendsList || [];  // vine din PHP: window.friendsList = [...]
+
+  shareBtn.addEventListener('click', () => {
+    // 1) golește orice intrare veche
+    sendList.innerHTML = '';
+
+    // 2) pentru fiecare prieten, creează un card
+    friends.forEach(f => {
+      const card = document.createElement('div');
+      card.className    = 'friend-card';
+      card.dataset.userId = f.id;
+      card.innerHTML    = `
+        <span>@${f.username}</span>
+        <button type="button" class="send-to-friend-btn">SEND</button>
+      `;
+      sendList.appendChild(card);
+    });
+
+    // 3) arată modalul
+    shareModal.style.display = 'flex';
+  });
+
+  // Aici poți atașa și handler-ul pentru .send-to-friend-btn
+  sendList.addEventListener('click', e => {
+    if (!e.target.matches('.send-to-friend-btn')) return;
+    // … restul trimiterii notificării …
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const notifBtn   = document.getElementById('notif-btn');
+  const notifPanel = document.getElementById('notif-panel');
+
+  // Ascunde panel-ul la început (dacă nu e deja)
+  notifPanel.style.display = notifPanel.style.display === 'block' ? 'block' : 'none';
+
+  // Clic pe clopoțel → arată/ascunde notificările
+  notifBtn.addEventListener('click', () => {
+    notifPanel.style.display =
+      notifPanel.style.display === 'block'
+        ? 'none'
+        : 'block';
   });
 });
 </script>
