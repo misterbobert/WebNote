@@ -163,7 +163,7 @@ body, html {
 }
 /* PROFILE CARD */
 .profile-card {
-  background: rgba(52,73,85,0.8);
+  background-color: #6c757d !important;
   border-radius: 8px;
   margin: 0.75rem 1rem;
   padding: 0.25rem 0.75rem;
@@ -519,7 +519,7 @@ body, html {
   width: 6px;
 }
 .notes-list::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
+  background-color: #3e5c76;
   border-radius: 3px;
 }
 /* ───── Scrollbar personalizat pentru .notes-list ───── */
@@ -538,14 +538,13 @@ body, html {
   background: transparent;
 }
 
-.notes-list::-webkit-scrollbar-thumb {
-  background-color: rgba(46, 125, 50, 0.8);
+.notes-list::-webkit-scrollbar-thumb { background-color: #3e5c76 !important;
   border-radius: 5px;    /* colțuri mai rotunjite */
   border: 1px solid transparent; /* păstrează forma rotunjită fără margină vizibilă */
 }
 /* Notes panel – card verde cu scroll intern */
 .notes-panel {
-  background: rgba(46, 125, 50, 0.85);
+  background-color: #6c757d !important;
   border-radius: 12px;
   padding: 1rem;
   /* Înălțime maximă fixă (poți ajusta după nevoie) */
@@ -568,8 +567,7 @@ body, html {
 /* Scrollbar slim, colțuri rotunde și culoare verde închis */
 /* Firefox */
 .notes-panel .notes-list {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(34, 100, 40, 0.8) transparent;
+  scrollbar-width: thin; 
 }
 
 /* WebKit (Chrome, Safari) */
@@ -582,7 +580,7 @@ body, html {
 }
 
 .notes-panel .notes-list::-webkit-scrollbar-thumb {
-  background-color: rgba(34, 100, 40, 0.8);
+  background-color: #404c5c !important;
   border-radius: 5px;
   border: 1px solid transparent;
 }
@@ -675,7 +673,7 @@ body, html {
    FRIENDS PANEL
 ───────────────────────────────────────────── */
 .friends-panel {
-  background: rgba(52,73,85,0.85);
+  background-color: #6c757d !important;
   border-radius: 12px;
   padding: 1rem;
   margin: 1rem;
@@ -1257,3 +1255,38 @@ html, body {
   flex-direction: column;  /* pentru ca textarea să crească pe verticală */
   overflow: hidden;        /* evită overflow în jos */
 }
+/* Face editorul Quill să ocupe toată înălțimea cardului */
+.editor-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+#quill-editor {
+  flex-grow: 1;
+  height: 100%;
+  background: transparent;
+  color: white;
+}
+
+/* Stilizare dropdown Quill: fundal verde, text negru */
+.ql-picker {
+  color: black !important;
+}
+
+.ql-picker-options {
+  background-color: #4C7973 !important;
+  color: black !important;
+  border: 1px solid #ccc;
+}
+
+.ql-picker-options .ql-picker-item:hover {
+  background-color: #3e665f !important;
+  color: white !important;
+}
+
+/* Scroll în editor dacă e necesar */
+.ql-editor {
+  overflow-y: auto;
+}
+ 
