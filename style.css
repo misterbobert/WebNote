@@ -316,7 +316,7 @@ body, html {
 :root {
   --sidebar-width:    250px;
   --editor-offset:     0.5rem;
-  --gap-after-sidebar: 0.5rem; /* distanța față de sidebar când e deschis */
+  --gap-after-sidebar:  -5.5rem !important; /* distanța față de sidebar când e deschis */ 
 }
 
 /* card-ul din editor are tranziție pe margin-left */
@@ -326,9 +326,7 @@ body, html {
 }
 
 /* când sidebar are clasa .open, card-ul sare după sidebar */
-.sidebar.open + .editor .editor-card {
-  margin-left: calc(var(--sidebar-width) + var(--gap-after-sidebar));
-}
+ 
 :root {
   /* ...existentele tale variabile... */
   --sidebar-width: 250px;       /* lățimea sidebar-ului când e deschis */
@@ -362,9 +360,7 @@ body, html {
 .editor-card {
   margin-left: var(--editor-offset);
 }
-.sidebar.open + .editor .editor-card {
-  margin-left: calc(var(--sidebar-width) + var(--gap-after-sidebar));
-}
+ 
 /* ───────────────────────────────────────────────
    Card și formular full-height în zona de editor
    ─────────────────────────────────────────────── */
@@ -1199,4 +1195,65 @@ body, html {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #5C807D; /* aceeaşi culoare pe care o foloseşte container-ul */
+}
+body {
+  overflow-x: hidden;
+}
+.container {
+  width: 100vw;
+}
+.container {
+  width: 100%;
+}
+/* 1) În .editor-card facem padding 16px și o structură flex verticală */
+.editor-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 2) Textarea ocupă tot spațiul rămas, nu poate fi redimensionată manual,
+      și are box-sizing inclusiv padding-ul */
+.editor-card .editor-input {
+  flex: 1;                  /* ia tot spațiul disponibil în .editor-card */
+  width: 100%;              /* full-width */
+  box-sizing: border-box;   /* include padding-ul în calculul dimensiunii */
+  resize: none;             /* dezactivează mânerul de redimensionare */
+  padding: 16px;            /* textul la 16px de margini */
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.2);
+  color: var(--clr-text);
+  font-size: 1rem;
+}
+
+/* 3) Dacă vrei să adaugi un contur la focus */
+.editor-card .editor-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(65,90,106,0.5);
+}
+html, body {
+  height: 100%;
+  margin: 0;
+}
+.container {
+  height: 100%;
+}
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.editor-card {
+  flex: 1;                 /* se întinde pe tot spațiul disponibil */
+  box-sizing: border-box;  /* include padding în lățime/înălțime */
+  padding: 16px;           /* 16px spațiu interior pe toate laturile */
+  display: flex;
+  flex-direction: column;  /* pentru ca textarea să crească pe verticală */
+  overflow: hidden;        /* evită overflow în jos */
 }
