@@ -65,6 +65,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+// 4) schimbare IMAGINE PROFIL
+if (!empty($_POST['image_url'])) {
+  $newImageUrl = trim($_POST['image_url']);
+  if (!empty($newImageUrl) && !filter_var($newImageUrl, FILTER_VALIDATE_URL)) {
+    $errors[] = 'URL invalid pentru imagine.';
+}
+ else {
+      $upd = $pdo->prepare('UPDATE users SET image_url = ? WHERE id = ?');
+      if ($upd->execute([$newImageUrl, $uid])) {
+          $success = 'Imaginea de profil a fost actualizată cu succes.';
+      } else {
+          $errors[] = 'Eroare la actualizarea imaginii.';
+      }
+  }
+}
 
     // redirecționăm dacă totul a mers OK
     if ($success && empty($errors)) {
