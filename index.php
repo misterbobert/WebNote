@@ -66,25 +66,6 @@ if ($slug) {
 
 // ── 5) Load your private notes for the sidebar ────────────────
 $notes = [];
-// public (user_id = 0)
-if (!$initialNote) {
-  $stmt = $pdo->prepare("
-    SELECT title, content, iv, editable
-      FROM notes
-     WHERE slug = ? AND user_id = 0
-     LIMIT 1
-  ");
-  $stmt->execute([$slug]);
-  if ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
-      $initialNote = [
-          'id'       => null,
-          'title'    => $r['title'] ?: 'Untitled note',
-          'full'     => decrypt_note($r['content'], $r['iv']),
-          'slug'     => $slug,
-          'editable' => (int)($r['editable'] ?? 0),
-      ];
-  }
-}
 
 // ── 6) Load profile, friendRequests, friends ──────────────────
 $username       = null;
@@ -381,7 +362,8 @@ if ($uid) {
         <input type="hidden" name="content" id="share-content">
         <input type="hidden" name="title"   id="share-title">
         <div class="modal-actions" style="margin-top:1rem;">
-          <button type="button" id="share-cancel" class="panel-btn">Cancel</button><button type="button" id="share-confirm" class="panel-btn">Share</button>
+          <button type="button" id="share-cancel" class="panel-btn">Cancel</button><button type="submit" id="share-confirm" class="panel-btn">Share</button>
+
 
         </div>
           <!-- … restul share-modal … -->
@@ -487,7 +469,7 @@ function initializeQuill() {
       }
     });
     console.log('✅ Quill initialized.');
-    setupAutosave();
+    // setupAutosave();
   }
 }
 
@@ -523,10 +505,11 @@ function createNewNote(forceNew = false) {
 // Afișare Notițe Locale
 // Afișare Notițe Locale
 function showLocalNotes() {
-  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+  document.getElementById('notes-list').innerHTML = '';
+
   const container = document.getElementById('notes-list');
   container.innerHTML = '';
-
+  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
   notes.forEach(note => {
     const btn = document.createElement('button');
     btn.className = 'panel-btn note-btn';
@@ -685,11 +668,43 @@ function changeNoteTitle() {
 // DOM Ready
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
-  initializeQuill();
+ 
   setupEventListeners();
   showLocalNotes();
   // Elimină complet linia asta din DOMContentLoaded:
 // loadMessages(userId);
+  initializeQuill();
+
+  // 🧠 Dacă nota e publică și editabilă, salvează în DB, altfel local
+  if (initialNote && initialNote.editable) {
+  quill.on('text-change', () => {
+    const slug = initialNote.slug;
+    const content = quill.root.innerHTML.trim();
+
+    if (!slug || !content) return;
+
+    fetch('update_shared_note.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: `slug=${encodeURIComponent(slug)}&content=${encodeURIComponent(content)}`
+    })
+    .then(r => r.json())
+    .then(j => {
+      if (j.success) {
+        console.log("✅ Notiță partajabilă salvată automat.");
+      } else {
+        console.warn("❌ Salvare eșuată:", j.error);
+      }
+    })
+    .catch(err => console.error("❌ Eroare de rețea:", err));
+  });
+}
+else {
+    // 👇 doar dacă nu e partajabilă => autosave local
+    setupAutosave();
+  }
 if (window.initialNote) {
   document.getElementById('note-title-display').innerText = initialNote.title;
   document.getElementById('note-title-input').value = initialNote.title;
@@ -731,6 +746,8 @@ if (changeTitleBtn) changeTitleBtn.addEventListener('click', changeNoteTitle);
   }
 
   function refreshAccountNotes() {
+    document.getElementById('notes-list').innerHTML = '';
+
   fetch('get_notes.php')
     .then(r => r.json())
     .then(data => {
@@ -971,46 +988,53 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('share-confirm').addEventListener('click', submitShareForm);
 });
-function submitShareForm(event) {
-  event.preventDefault(); // 🛑 oprește submit-ul nativ al formularului
+ 
 
-  const slug = document.getElementById('share-slug').value.trim();
-  const editable = document.getElementById('share-editable').checked ? 1 : 0;
+if (!window.isLogged && initialNote && initialNote.editable){
+  let db;
+  quill.on('text-change', () => {
+    clearTimeout(db);
+    db = setTimeout(() => {
+      fetch('update_shared_note.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `slug=${encodeURIComponent(initialNote.slug)}&content=${encodeURIComponent(quill.root.innerHTML.trim())}`
+      }).then(r => {
+        if (r.ok) console.log("✅ Notiță partajabilă salvată automat.");
+        else console.warn("❌ Salvare eșuată.");
+      });
+    }, 800);
+  });
+}
+function saveSharedNoteLive() {
+  const slug    = document.getElementById('note-slug').value.trim();
   const content = quill.getText().trim() ? quill.root.innerHTML.trim() : '';
-  const title = document.getElementById('share-title').value || 'Untitled note';
 
   if (!slug || !content) {
-    alert('Trebuie completat numele linkului și conținutul!');
+    console.warn('Eroare la salvare în timp real: Lipsă slug sau conținut.');
     return;
   }
 
-  const params = new URLSearchParams();
-  params.append('slug', slug);
-  params.append('title', title);
-  params.append('content', content);
-  if (editable) params.append('editable', '1');
+  const formData = new FormData();
+  formData.append('slug', slug);
+  formData.append('content', content);
 
-  fetch('share_note.php', {
+  fetch('update_shared_note.php', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString()
+    body: formData
   })
   .then(r => r.json())
   .then(j => {
     if (j.success) {
-      const fullUrl = `${window.location.origin}/${j.link}`;
-      prompt('🔗 Copiază linkul partajabil:', fullUrl);
-      window.location.href = `/${j.link}`;
+      console.log('✅ Notiță partajabilă salvată automat.');
     } else {
-      alert('❌ Eroare: ' + (j.error || ''));
+      console.warn('❌ Eroare la salvare:', j.error);
     }
   })
   .catch(err => {
-    alert('Eroare de rețea.');
-    console.error(err);
+    console.error('❌ Eroare de rețea:', err);
   });
 }
-
 
 </script>
 
