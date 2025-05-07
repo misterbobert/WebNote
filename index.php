@@ -188,27 +188,26 @@ if ($uid) {
       </div>
 
       <!-- Notifications -->
-      <button id="notif-btn" class="notif-btn" title="Notifications">🔔</button>
-      <div id="notif-panel" class="notif-panel" style="display:none;">
-        <?php if (empty($friendRequests)): ?>
-          <p class="notif-empty">No notifications.</p>
-        <?php endif; ?>
-        <?php foreach ($friendRequests as $fr): ?>
-          <div class="notif-item"
-               data-fr-id="<?= $fr['fr_id'] ?>"
-               data-user-id="<?= $fr['user_id'] ?>">
-            <img src="<?= $fr['image_url']?:'avatar_default.png' ?>"
-                 class="notif-avatar" alt="">
-            <div class="notif-text">
-              @<?= htmlspecialchars($fr['username']) ?> has invited you to be friends!
-            </div>
-            <div class="notif-actions">
-              <button class="notif-reject btn">Reject</button>
-              <button class="notif-accept btn">Accept</button>
-            </div>
-          </div>
-        <?php endforeach; ?>
+     <!-- Notifications -->
+<button id="notif-btn" class="notif-btn" title="Notifications">🔔</button>
+<div id="notif-panel" class="notif-panel" style="display:none;">
+  <?php if (empty($friendRequests)): ?>
+    <p class="notif-empty">No notifications.</p>
+  <?php endif; ?>
+  <?php foreach ($friendRequests as $fr): ?>
+    <div class="notif-item">
+      <img src="<?= $fr['image_url'] ?: 'avatar_default.png' ?>" class="notif-avatar" alt="">
+      <div class="notif-text">
+        @<?= htmlspecialchars($fr['username']) ?> has invited you to be friends!
       </div>
+      <div class="notif-actions">
+        <button class="notif-reject btn" data-fr-id="<?= $fr['fr_id'] ?>">Reject</button>
+        <button class="notif-accept btn" data-fr-id="<?= $fr['fr_id'] ?>">Accept</button>
+      </div>
+    </div>
+  <?php endforeach; ?>
+</div>
+
 
       <hr>
 
@@ -628,6 +627,40 @@ if (changeTitleBtn) changeTitleBtn.addEventListener('click', changeNoteTitle);
     console.log('ℹ️ No draft found.');
   }
 });
+
+// Event listener pentru butoanele Reject și Accept
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('notif-reject') || e.target.classList.contains('notif-accept')) {
+        const frId = e.target.dataset.frId;
+        const action = e.target.classList.contains('notif-reject') ? 'reject' : 'accept';
+        handleFriendRequest(frId, action);
+    }
+});
+
+// Funcția de gestionare a cererilor de prietenie
+function handleFriendRequest(frId, action) {
+    fetch('friend_request.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            frId: frId,
+            action: action
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Friend request ${action}ed successfully.`);
+            // Eliminăm cererea de prietenie din UI
+            document.querySelector(`.notif-reject[data-fr-id="${frId}"]`).closest('.notif-item').remove();
+        } else {
+            console.error('Error:', data.message);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
 
 
 
