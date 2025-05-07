@@ -3,7 +3,8 @@ session_start();
 require 'config.php';
 header('Content-Type: application/json');
 
-$userId = $_SESSION['user_id'] ?? 0; // Dacă nu e logat, e user anonim (0)
+// Forțăm notița partajată să fie publică (user_id = 0)
+$userId = 0;
 
 $title    = trim($_POST['title']    ?? '');
 $content  = trim($_POST['content']  ?? '');
@@ -15,7 +16,7 @@ if (!$slug || !$content) {
     exit;
 }
 
-// Verificăm unicitatea slugului
+// Verificăm dacă slugul e deja folosit
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM notes WHERE slug = ?");
 $stmt->execute([$slug]);
 if ($stmt->fetchColumn() > 0) {
@@ -23,7 +24,7 @@ if ($stmt->fetchColumn() > 0) {
     exit;
 }
 
-// Criptăm notița
+// Criptăm conținutul
 $iv = openssl_random_pseudo_bytes(16);
 $encrypted = openssl_encrypt($content, 'AES-256-CBC', ENCRYPTION_KEY, OPENSSL_RAW_DATA, $iv);
 $b64iv = base64_encode($iv);
@@ -37,7 +38,13 @@ $insert = $pdo->prepare("
 $ok = $insert->execute([$userId, $title, $slug, $b64cipher, $b64iv, $editable]);
 
 if ($ok) {
-    echo json_encode(['success' => true, 'link' => $slug]);
+    echo json_encode([
+        'success' => true,
+        'link'    => $slug // doar slug, nu cu domeniu (frontend îl construiește)
+    ]);
 } else {
-    echo json_encode(['success' => false, 'error' => 'Eroare la salvarea în DB.']);
+    echo json_encode([
+        'success' => false,
+        'error'   => 'Eroare la salvarea în baza de date.'
+    ]);
 }

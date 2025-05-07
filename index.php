@@ -3,12 +3,8 @@ session_start();
 require 'config.php';
 
 // ── 1) Pretty‐URL slug detection ───────────────────────────────
-$path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-$base = trim(dirname($_SERVER['SCRIPT_NAME']), '/'); // e.g. "WebNote"
-if ($base !== '' && strpos($path, $base) === 0) {
-    $path = ltrim(substr($path, strlen($base)), '/');
-}
-$slug = ($path === '' || $path === 'index.php') ? '' : $path;
+$slug = basename($_SERVER['REQUEST_URI']);
+$slug = strtok($slug, '?'); // înlătură eventualii parametri GET
 
 // ── 2) AES‐256‐CBC decrypt helper ──────────────────────────────
 function decrypt_note(string $b64cipher, string $b64iv): string {
@@ -70,25 +66,24 @@ if ($slug) {
 
 // ── 5) Load your private notes for the sidebar ────────────────
 $notes = [];
-if ($uid) {
-    $stmt = $pdo->prepare("
-      SELECT id,title,content,iv,slug
-        FROM notes
-       WHERE user_id = ?
-    ORDER BY created_at DESC
-    ");
-    $stmt->execute([$uid]);
-    while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $full    = decrypt_note($r['content'], $r['iv']);
-        $preview = mb_strimwidth($full, 0, 30, '…');
-        $notes[] = [
-            'id'      => $r['id'],
-            'title'   => $r['title'],
-            'preview' => $preview,
-            'full'    => $full,
-            'slug'    => $r['slug'],
-        ];
-    }
+// public (user_id = 0)
+if (!$initialNote) {
+  $stmt = $pdo->prepare("
+    SELECT title, content, iv, editable
+      FROM notes
+     WHERE slug = ? AND user_id = 0
+     LIMIT 1
+  ");
+  $stmt->execute([$slug]);
+  if ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+      $initialNote = [
+          'id'       => null,
+          'title'    => $r['title'] ?: 'Untitled note',
+          'full'     => decrypt_note($r['content'], $r['iv']),
+          'slug'     => $slug,
+          'editable' => (int)($r['editable'] ?? 0),
+      ];
+  }
 }
 
 // ── 6) Load profile, friendRequests, friends ──────────────────
@@ -695,6 +690,14 @@ document.addEventListener('DOMContentLoaded', () => {
   showLocalNotes();
   // Elimină complet linia asta din DOMContentLoaded:
 // loadMessages(userId);
+if (window.initialNote) {
+  document.getElementById('note-title-display').innerText = initialNote.title;
+  document.getElementById('note-title-input').value = initialNote.title;
+  document.getElementById('note-slug').value = initialNote.slug;
+  document.getElementById('note-id').value = initialNote.id || '';
+  quill.root.innerHTML = initialNote.full;
+  console.log('✅ Notiță încărcată din slug:', initialNote.slug);
+}
 
 // Mesajele se încarcă doar când se deschide chatul:
 function openChat(userId, username) {
