@@ -2,8 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // ───────── grab all our elements ─────────
   const sidebar       = document.querySelector('.sidebar');
   const ham           = document.getElementById('hamburger');
-  const newNoteBtn    = document.getElementById('new-note');
-  const editorInput   = document.querySelector('.editor-input');
+  const newNoteBtn    = document.getElementById('new-note');const editorInput = document.getElementById('hidden-content'); 
+
   const titleDisplay  = document.getElementById('note-title-display');
   const titleInput    = document.getElementById('note-title-input');
   const slugInput     = document.getElementById('note-slug');
@@ -99,14 +99,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ───────── auto-save draft ─────────
-  editorInput.addEventListener('input', () => {
-    localStorage.setItem('draftContent', editorInput.value);
-    localStorage.setItem('draftTitle', titleDisplay.textContent);
+ // ───────── auto-save draft ─────────
+// ───────── localStorage notes ─────────
+function loadLocalNotes() {
+  document.querySelectorAll('.local-note-btn').forEach(b => b.remove());
+  const arr = JSON.parse(localStorage.getItem('localNotes') || '[]');
+
+  arr.forEach(item => {
+    const b = document.createElement('button');
+    b.type = 'button'; 
+    b.className = 'panel-btn local-note-btn';
+    b.textContent = item.title; 
+    b.dataset.lid = item.id;
+    notesList.appendChild(b);
+
+    b.addEventListener('click', () => {
+      editorInput.value = item.content;
+      titleDisplay.textContent = item.title;
+      titleInput.value = item.title;
+      slugInput.value = '';
+      idInput.value = item.id;
+      
+      // Șterge draft-ul când se deschide o notiță existentă
+      localStorage.removeItem('draftContent');
+      localStorage.removeItem('draftTitle');
+    });
   });
-  const dc = localStorage.getItem('draftContent'),
-        dt = localStorage.getItem('draftTitle');
-  if (dc) editorInput.value = dc;
-  if (dt) titleDisplay.textContent = dt;
+}
 
   // ───────── localStorage notes ─────────
   function loadLocalNotes() {
@@ -185,7 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
       shareBtn.style.display='none';
     }
   } else {
-    shareBtn.addEventListener('click', openShareModal);
+    if (shareBtn) {
+  shareBtn.addEventListener('click', openShareModal);
+}
   }
   shareCancel.addEventListener('click', () => shareModal.style.display='none');
   shareConfirm.addEventListener('click', () => {
@@ -255,9 +276,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ───────── add‐friend modal ─────────
   addFriendBtn.addEventListener('click', () => {
-    afInput.value='@';
-    afModal.style.display='flex';
-    afInput.focus();
+    if (addFriendBtn) {
+      addFriendBtn.addEventListener('click', () => {
+        const handle = prompt('Friend handle (@username):','@');
+        if (!handle || handle[0] !== '@') {
+          return alert('Invalid handle. Trebuie să înceapă cu @');
+        }
+        // trimiți cererea
+        fetch('send_friend_request.php', {
+          method: 'POST',
+          headers: {'Content-Type':'application/x-www-form-urlencoded'},
+          body: `handle=${encodeURIComponent(handle)}`
+        })
+        .then(r => r.json())
+        .then(json => {
+          if (json.success) {
+            alert('Request sent!');
+          } else {
+            alert('Error: ' + (json.error||''));
+          }
+        })
+        .catch(() => alert('Network error.'));
+      });
+    }
+    
   });
   afCancel.addEventListener('click', () => afModal.style.display='none');
   afConfirm.addEventListener('click', () => {
@@ -322,12 +364,15 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.value = '';
       }).catch(()=>alert('Network error.'));
   });
-  chatInput.addEventListener('keydown', e => {
-    if (e.key==='Enter' && !e.shiftKey) {
-      e.preventDefault();
-      chatSend.click();
-    }
-  });
+  if (chatInput) {
+    chatInput.addEventListener('keydown', e => {
+      if (e.key==='Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatSend.click();
+      }
+    });
+  }
+  
 
   // ───────── live‐save shared note ─────────
   if (!isLogged && initialNote && initialNote.editable) {
@@ -350,10 +395,14 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(()=>{/*ignore*/});
   }
 });// ─── Toggling Notifications Panel ────────────────────────────
-document.getElementById('notif-btn').addEventListener('click', () => {
-  const panel = document.getElementById('notif-panel');
-  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-});
+const notifBtn = document.getElementById('notif-btn');
+const notifPanel = document.getElementById('notif-panel');
+
+if (notifBtn && notifPanel) {
+  notifBtn.addEventListener('click', () => {
+    notifPanel.style.display = notifPanel.style.display === 'block' ? 'none' : 'block';
+  });
+}
 
 // ─── Chat Open / Close ────────────────────────────────────────
 // Deschizi chat-ul când apeși pe oricare buton .chat-icon

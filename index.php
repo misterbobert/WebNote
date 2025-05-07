@@ -268,8 +268,7 @@ if ($uid) {
 <input type="hidden" id="note-title-input" name="title" value="<?= htmlspecialchars($initialNote['title'] ?? '') ?>">
 <input type="hidden" id="local-id" name="localId">
 
-  <button type="button" class="panel-btn save-note-btn">Save to account</button>
-  <button type="button" class="panel-btn save-local-btn">Save to LocalStorage</button>
+  <button type="button" class="panel-btn save-note-btn">Save to account</button> 
   <button type="button" id="share-btn" class="panel-btn">Share</button>
   <button type="button" id="delete-btn" class="panel-btn delete-btn" style="background-color:#e74c3c; color:#fff; margin-left:0.5rem">
     Delete
@@ -355,208 +354,185 @@ if ($uid) {
     </div>
   </div>
  
-
-<!-- Quill JS -->
-<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
-<script>
-  const quill = new Quill('#quill-editor', {
-    theme: 'snow',
-    placeholder: 'Scrie notița aici...',
-    modules: {
-      toolbar: [
-        ['bold', 'italic', 'underline', 'strike'],
-        [{ 'font': [] }, { 'size': [] }],
-        [{ 'color': [] }, { 'background': [] }],
-        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-        [{ 'align': [] }],
-        ['clean']
-      ]
-    }
-  });
-
-  // Populează conținutul inițial
-  const initialContent = window.initialNote?.full || '';
-  quill.root.innerHTML = initialContent;
-  document.getElementById('hidden-content').value = initialContent;
-
-  // Autosave logic
-  let autosaveTimeout;
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script>let quill;
+let autosaveTimeout;
+// Autosave Function
+function setupAutosave() {
   quill.on('text-change', () => {
-    const hiddenInput   = document.getElementById('hidden-content');
-    const titleInput    = document.getElementById('note-title-input');
-    const slugInput     = document.getElementById('note-slug');
-    const idInput       = document.getElementById('note-id');
-    const localIdInput  = document.getElementById('local-id');
+    const hiddenInput = document.getElementById('hidden-content');
+    const titleInput = document.getElementById('note-title-input');
+    const localIdInput = document.getElementById('local-id');
 
-    const body  = quill.root.innerHTML.trim();
-    const title = titleInput.value.trim();
-    const id    = idInput.value.trim();
-    const slug  = slugInput.value.trim();
-    const locId = localIdInput.value.trim();
+    const content = quill.root.innerHTML.trim();
+    const title = titleInput.value.trim() || 'Untitled note';
+    let localId = localIdInput.value.trim();
 
-    hiddenInput.value = body;
+    hiddenInput.value = content;
 
     clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(() => {
-      // Salvează local
-      if (locId) {
-        let arr = JSON.parse(localStorage.getItem('localNotes') || '[]');
-        const index = arr.findIndex(n => String(n.id) === locId);
-        if (index !== -1) {
-          arr[index].content = body;
-          arr[index].title = title;
-          localStorage.setItem('localNotes', JSON.stringify(arr));
-          console.log('✅ Local autosaved.');
-        }
+      if (!localId) {
+        // Creează un ID temporar pentru draft
+        localId = 'draft-' + Date.now().toString();
+        localIdInput.value = localId;
       }
 
-      // Salvează pe server
-      if (id || slug) {
-        fetch('save_note.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: `id=${encodeURIComponent(id)}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title)}&content=${encodeURIComponent(body)}`
-        })
-        .then(r => r.json())
-        .then(j => {
-          if (!j.success) console.warn('❌ Autosave error:', j.error || 'Eroare necunoscută');
-          else console.log('✅ Server autosaved.');
-        })
-        .catch(err => console.error('❌ Autosave network error:', err));
+      let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+      const index = notes.findIndex(note => note.id === localId);
+
+      if (index === -1) {
+        notes.push({ id: localId, title, content });
+        console.log('✅ Draft autosaved:', localId);
+      } else {
+        notes[index].title = title;
+        notes[index].content = content;
+        console.log('✅ Draft updated:', localId);
       }
+
+      localStorage.setItem('localNotes', JSON.stringify(notes));
     }, 1000);
-  });
-
-  document.querySelectorAll('.note-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const slug = btn.getAttribute('data-slug');
-    const note = window.noteData.find(n => n.slug === slug);
-    if (!note) return;
-
-    // actualizează titlul
-    document.getElementById('note-title-input').value = note.title;
-    document.getElementById('note-slug').value = note.slug;
-    document.getElementById('note-id').value = note.id || '';
-    document.getElementById('note-title-display').innerText = note.title;
-
-    // setează conținutul în Quill
-    quill.root.innerHTML = note.full;
-    document.getElementById('hidden-content').value = note.full;
-
-    // actualizează localId dacă e local note (opțional)
-    document.getElementById('local-id').value = note.id || '';
-  });
-});
-
-</script>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  // Save to Account
-  document.querySelector('.save-note-btn')?.addEventListener('click', () => {
-  const currentTitle = document.getElementById('note-title-input').value.trim();
-  document.getElementById('save-account-title').value = currentTitle || '';
-  document.getElementById('save-account-modal').style.display = 'block';
-});
-
-document.getElementById('save-account-confirm')?.addEventListener('click', () => {
-  const newTitle = document.getElementById('save-account-title').value.trim();
-  if (!newTitle) return alert("Completează titlul!");
-
-  // Setează titlul notei
-  document.getElementById('note-title-input').value = newTitle;
-  document.getElementById('note-title-display').innerText = newTitle;
-
-  // Ascunde modalul
-  document.getElementById('save-account-modal').style.display = 'none';
-
-  // Trimite formularul
-  document.getElementById('hidden-content').value = quill.root.innerHTML;
-  document.getElementById('editor-form').submit();
-});
-
-document.getElementById('save-account-cancel')?.addEventListener('click', () => {
-  document.getElementById('save-account-modal').style.display = 'none';
-});
-
-  // Save to LocalStorage - deschide modalul
-  document.querySelector('.save-local-btn')?.addEventListener('click', () => {
-    document.getElementById('save-local-modal').style.display = 'block';
-    document.getElementById('save-local-title').value = document.getElementById('note-title-input').value;
-  });
-
-  // Confirm Save to LocalStorage
-  document.getElementById('save-local-confirm')?.addEventListener('click', () => {
-    const title = document.getElementById('save-local-title').value.trim();
-    const content = quill.root.innerHTML.trim();
-    const arr = JSON.parse(localStorage.getItem('localNotes') || '[]');
-    const id = Date.now();
-    arr.push({ id, title, content });
-    localStorage.setItem('localNotes', JSON.stringify(arr));
-    document.getElementById('save-local-modal').style.display = 'none';
-    alert('✅ Note saved locally.');
-  });
-
-  // Cancel modal
-  document.getElementById('save-local-cancel')?.addEventListener('click', () => {
-    document.getElementById('save-local-modal').style.display = 'none';
-  });
-
-  // Share modal
-  document.getElementById('share-btn')?.addEventListener('click', () => {
-    document.getElementById('share-content').value = quill.root.innerHTML;
-    document.getElementById('share-title').value = document.getElementById('note-title-input').value;
-    document.getElementById('share-modal').style.display = 'block';
-  });
-
-  document.getElementById('share-cancel')?.addEventListener('click', () => {
-    document.getElementById('share-modal').style.display = 'none';
-  });
-
-  // Delete note
-  document.getElementById('delete-btn')?.addEventListener('click', () => {
-    if (confirm('Sigur vrei să ștergi această notiță?')) {
-      const id = document.getElementById('note-id').value.trim();
-      const slug = document.getElementById('note-slug').value.trim();
-      fetch('delete_note.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `id=${encodeURIComponent(id)}&slug=${encodeURIComponent(slug)}`
-      }).then(() => {
-        window.location.href = '/';
-      });
-    }
-  });
-
-  // Click pe notă în sidebar (force reload
-});
-// Afișare notițe locale în sidebar
-function showLocalNotes() {
-  const arr = JSON.parse(localStorage.getItem('localNotes') || '[]');
-  const container = document.getElementById('notes-list');
-
-  arr.forEach(note => {
-    const btn = document.createElement('button');
-    btn.className = 'panel-btn note-btn';
-    btn.dataset.localId = note.id;
-    btn.textContent = note.title || 'Untitled';
-    btn.addEventListener('click', () => {
-      quill.root.innerHTML = note.content;
-      document.getElementById('note-title-display').innerText = note.title;
-      document.getElementById('note-title-input').value = note.title;
-      document.getElementById('hidden-content').value = note.content;
-      document.getElementById('local-id').value = note.id;
-      document.getElementById('note-id').value = '';   // clear pentru că e local
-      document.getElementById('note-slug').value = ''; // clear pentru că e local
-    });
-    container.appendChild(btn);
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Inițializare Quill
+function initializeQuill() {
+  if (!quill) {
+    quill = new Quill('#quill-editor', {
+      theme: 'snow',
+      placeholder: 'Scrie notița aici...',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'font': [] }, { 'size': [] }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          [{ 'align': [] }],
+          ['clean']
+        ]
+      }
+    });
+    console.log('✅ Quill initialized.');
+    setupAutosave();
+  }
+}
+
+
+
+// Creare Notiță Nouă
+function createNewNote() {
+  quill.root.innerHTML = '';
+  document.getElementById('note-title-display').innerText = 'Untitled note';
+  document.getElementById('note-title-input').value = '';
+  document.getElementById('local-id').value = '';
+  document.getElementById('note-id').value = '';
+  document.getElementById('note-slug').value = '';
+  document.getElementById('hidden-content').value = '';
+  console.log('✅ New note created');
+}
+
+// Afișare Notițe Locale
+function showLocalNotes() {
+  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+  const container = document.getElementById('notes-list');
+  container.innerHTML = '';
+
+  notes.forEach(note => {
+    // Exclude notițele de tip "draft-..."
+    if (!note.id.startsWith('draft-')) {
+      const btn = document.createElement('button');
+      btn.className = 'panel-btn note-btn';
+      btn.textContent = note.title || 'Untitled';
+      btn.addEventListener('click', () => {
+        quill.root.innerHTML = note.content;
+        document.getElementById('note-title-display').innerText = note.title;
+        document.getElementById('note-title-input').value = note.title;
+        document.getElementById('local-id').value = note.id;
+        document.getElementById('hidden-content').value = note.content;
+        console.log('✅ Note loaded:', note.id);
+      });
+      container.appendChild(btn);
+    }
+  });
+}
+
+
+// Salvare în Cont
+function saveToAccount() {
+  const newTitle = document.getElementById('save-account-title').value.trim();
+  if (!newTitle) return alert("Completează titlul!");
+
+  document.getElementById('note-title-input').value = newTitle;
+  document.getElementById('note-title-display').innerText = newTitle;
+  document.getElementById('hidden-content').value = quill.root.innerHTML;
+
+  document.getElementById('editor-form').submit();
+  document.getElementById('save-account-modal').style.display = 'none';
+}
+
+// Salvare în LocalStorage
+function saveToLocal() {
+  const title = document.getElementById('save-local-title').value.trim();
+  const content = quill.root.innerHTML.trim();
+  const id = Date.now().toString();
+
+  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+  notes.push({ id, title, content });
+  localStorage.setItem('localNotes', JSON.stringify(notes));
+
+  document.getElementById('save-local-modal').style.display = 'none';
+  alert('✅ Note saved locally.');
   showLocalNotes();
+}
+
+// Ștergere Notiță
+function deleteNote() {
+  if (confirm('Sigur vrei să ștergi această notiță?')) {
+    const localId = document.getElementById('local-id').value.trim();
+    let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+    notes = notes.filter(note => note.id !== localId);
+    localStorage.setItem('localNotes', JSON.stringify(notes));
+
+    console.log('✅ Note deleted:', localId);
+    createNewNote();
+    showLocalNotes();
+  }
+}
+
+// Event Listeners
+function setupEventListeners() {
+  const newNoteBtn = document.getElementById('new-note');
+  const saveAccountBtn = document.getElementById('save-account-confirm');
+  const saveLocalBtn = document.getElementById('save-local-confirm');
+  const deleteBtn = document.getElementById('delete-btn');
+
+  if (newNoteBtn) newNoteBtn.addEventListener('click', createNewNote);
+  if (saveAccountBtn) saveAccountBtn.addEventListener('click', saveToAccount);
+  if (saveLocalBtn) saveLocalBtn.addEventListener('click', saveToLocal);
+  if (deleteBtn) deleteBtn.addEventListener('click', deleteNote);
+}
+
+// DOM Ready
+// DOM Ready
+document.addEventListener('DOMContentLoaded', () => {
+  initializeQuill();
+  setupEventListeners();
+  showLocalNotes();
+
+  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+  const draftNote = notes.find(note => note.id.startsWith('draft-'));
+
+  if (draftNote) {
+    quill.root.innerHTML = draftNote.content;
+    document.getElementById('note-title-input').value = draftNote.title;
+    document.getElementById('note-title-display').innerText = draftNote.title;
+    document.getElementById('local-id').value = draftNote.id;
+    console.log('✅ Draft loaded:', draftNote.id);
+  } else {
+    console.log('ℹ️ No draft found.');
+  }
 });
+
 
 
 </script>
