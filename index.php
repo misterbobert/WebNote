@@ -366,9 +366,7 @@ if ($uid) {
 
 
         </div>
-          <!-- … restul share-modal … -->
-  <div id="send-to-friend" style="margin-top:1.5rem; border-top:1px solid #ccc; padding-top:1rem;">
-    <h4>SEND TO FRIEND</h4>
+          <!-- … restul share-modal … --> 
     <div id="send-friends-list" style="max-height:200px; overflow:auto;"></div>
   </div>
 
