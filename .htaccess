@@ -1,8 +1,7 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  # dacă URL nu corespunde unui fișier/director fizic, redirecționează tot către index.php
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^ index.php [L,QSA]
-</IfModule>
+RewriteEngine On
+RewriteBase /Webnote/
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+RewriteRule ^(.*)$ index.php [QSA,L]

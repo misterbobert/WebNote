@@ -9,29 +9,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const slugInput     = document.getElementById('note-slug');
   const idInput       = document.getElementById('note-id');
   const saveBtn       = document.querySelector('.save-note-btn');
-  const saveLocalBtn  = document.querySelector('.save-local-btn');
-  const shareBtn      = document.getElementById('share-btn');
+  const saveLocalBtn  = document.querySelector('.save-local-btn'); 
   const notesList     = document.getElementById('notes-list');
   const notifBtn      = document.getElementById('notif-btn');
   const notifPanel    = document.getElementById('notif-panel');
   const addFriendBtn  = document.getElementById('add-friend-btn');
-  const friendsList   = document.querySelector('.friends-list');
-  const chatPanel     = document.getElementById('chat-panel');
-  const chatTitle     = document.getElementById('chat-with');
-  const chatClose     = document.getElementById('chat-close-btn');
-  const chatBody      = document.getElementById('chat-body');
-  const chatInput     = document.getElementById('chat-input');
-  const chatSend      = document.getElementById('chat-send');
-
-  // share modal
-  const shareModal    = document.getElementById('share-modal');
-  const shareSlug     = document.getElementById('share-slug');
-  const shareContent  = document.getElementById('share-content');
-  const shareTitle    = document.getElementById('share-title');
-  const shareEditable = document.getElementById('share-editable');
-  const shareCancel   = document.getElementById('share-cancel');
-  const shareConfirm  = document.getElementById('share-confirm');
-
+  const friendsList   = document.querySelector('.friends-list');   
   // save-to-account modal
   const saModal       = document.getElementById('save-account-modal');
   const saInput       = document.getElementById('save-account-title');
@@ -151,11 +134,7 @@ function loadLocalNotes() {
  
 
   // ───────── save to account modal ─────────
-  saveBtn.addEventListener('click', () => {
-    if (!isLogged) return window.location='login.php';
-    saInput.value = titleDisplay.textContent==='Untitled note'?'':titleDisplay.textContent;
-    saModal.style.display='flex';
-  });
+  
   saCancel.addEventListener('click', () => saModal.style.display='none');
   saConfirm.addEventListener('click', () => {
     const t = saInput.value.trim();
@@ -167,57 +146,7 @@ function loadLocalNotes() {
   });
 
   // ───────── share/save toggle ─────────
-  function openShareModal() {
-    shareSlug.value       = titleDisplay.textContent.replace(/\s+/g,'');
-    shareEditable.checked = false;
-    shareContent.value    = editorInput.value;
-    shareTitle.value      = titleInput.value||titleDisplay.textContent;
-    shareModal.style.display='flex';
-  }
-  if (initialNote && initialNote.slug) {
-    if (initialNote.editable) {
-      shareBtn.textContent='Save';
-      shareBtn.addEventListener('click', () => {
-        fetch('update_shared_note.php',{
-          method:'POST',
-          headers:{'Content-Type':'application/x-www-form-urlencoded'},
-          body:`slug=${encodeURIComponent(initialNote.slug)}&content=${encodeURIComponent(editorInput.value)}`
-        }).then(r=>{ if(!r.ok)throw Error(r.statusText) })
-          .catch(e=>alert('Eroare la salvare: '+e));
-      });
-    } else {
-      shareBtn.style.display='none';
-    }
-  } else {
-    if (shareBtn) {
-  shareBtn.addEventListener('click', openShareModal);
-}
-  }
-  shareCancel.addEventListener('click', () => shareModal.style.display='none');
-  shareConfirm.addEventListener('click', () => {
-    const slug = shareSlug.value.trim();
-    const ed   = shareEditable.checked?1:0;
-    if (!slug) return alert('Trebuie un nume de link.');
-    shareModal.style.display='none';
-    const params = new URLSearchParams({
-      content: editorInput.value,
-      title:   titleInput.value||titleDisplay.textContent,
-      slug, editable: ed
-    });
-    fetch('share_note.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body: params.toString()
-    }).then(r=>r.json())
-      .then(j=>{
-        if (j.link) {
-          prompt('Copy link:', j.link);
-          window.location.href = j.link;
-        } else alert('Eroare la share: '+(j.error||''));
-      })
-      .catch(()=>alert('Network error.'));
-  });
-
+    
   // ───────── friend‐request dropdown ─────────
   function updateBell() {
     if (notifPanel.querySelectorAll('.notif-item').length)
@@ -286,80 +215,8 @@ function loadLocalNotes() {
     }
     
   });
- 
-  // ───────── chat pop-up ─────────
-  function attachChatHandler(btn) {
-    btn.addEventListener('click', () => {
-      const uid = btn.closest('.friend-item').dataset.userId;
-      currentChatUserId = uid;
-      chatTitle.textContent   = btn.dataset.user;
-      chatTitle.dataset.userId= uid;
-      chatBody.innerHTML      = '';
-      chatPanel.classList.add('open');
-      fetch(`load_messages.php?with=${uid}`)
-        .then(r=>r.json())
-        .then(msgs=>{
-          msgs.forEach(m=>{
-            const d = document.createElement('div');
-            d.className = m.sender_id==window.myId
-                        ? 'chat-message-outgoing'
-                        : 'chat-message-incoming';
-            d.textContent = m.content;
-            chatBody.appendChild(d);
-          });
-          chatBody.scrollTop = chatBody.scrollHeight;
-        });
-    });
-  }
-  document.querySelectorAll('.chat-icon').forEach(attachChatHandler);
-  chatClose.addEventListener('click', () => {
-    chatPanel.classList.remove('open');
-    currentChatUserId = null;
-  });
-  chatSend.addEventListener('click', () => {
-    const text = chatInput.value.trim();
-    const toId = chatTitle.dataset.userId;
-    if (!text||!toId) return;
-    fetch('send_message.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:`to=${encodeURIComponent(toId)}&content=${encodeURIComponent(text)}`
-    }).then(r=>r.json())
-      .then(j=>{
-        if (!j.success) return alert(j.error||'Eroare');
-        const d = document.createElement('div');
-        d.className='chat-message-outgoing';
-        d.textContent = text;
-        chatBody.appendChild(d);
-        chatBody.scrollTop = chatBody.scrollHeight;
-        chatInput.value = '';
-      }).catch(()=>alert('Network error.'));
-  });
-  if (chatInput) {
-    chatInput.addEventListener('keydown', e => {
-      if (e.key==='Enter' && !e.shiftKey) {
-        e.preventDefault();
-        chatSend.click();
-      }
-    });
-  }
   
-
-  // ───────── live‐save shared note ─────────
-  if (!isLogged && initialNote && initialNote.editable) {
-    let db;
-    editorInput.addEventListener('input', () => {
-      clearTimeout(db);
-      db = setTimeout(() => {
-        fetch('update_shared_note.php',{
-          method:'POST',
-          headers:{'Content-Type':'application/x-www-form-urlencoded'},
-          body:`slug=${encodeURIComponent(initialNote.slug)}&content=${encodeURIComponent(editorInput.value)}`
-        });
-      },800);
-    });
-  }
-
+ 
   // ───────── register service worker ─────────
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js')
@@ -374,62 +231,3 @@ if (notifBtn && notifPanel) {
     notifPanel.style.display = notifPanel.style.display === 'block' ? 'none' : 'block';
   });
 }
-
-// ─── Chat Open / Close ────────────────────────────────────────
-// Deschizi chat-ul când apeși pe oricare buton .chat-icon
-document.querySelectorAll('.chat-icon').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const userItem = btn.closest('.friend-item');
-    const otherId  = userItem.dataset.userId;
-    const userHandle = btn.dataset.user;
-    // Populezi titlul și data-userId
-    const chatWith = document.getElementById('chat-with');
-    chatWith.textContent     = userHandle;
-    chatWith.dataset.userId  = otherId;
-    // Golești și arăți corpul
-    const body = document.getElementById('chat-body');
-    body.innerHTML = '';
-    document.getElementById('chat-panel').classList.add('open');
-    // Aici poți relua fetch-ul de mesaje
-    fetch(`load_messages.php?with=${otherId}`)
-      .then(r => r.json())
-      .then(msgs => {
-        msgs.forEach(m => {
-          const d = document.createElement('div');
-          d.className = m.sender_id == window.myId
-                      ? 'chat-message-outgoing'
-                      : 'chat-message-incoming';
-          d.textContent = m.content;
-          body.appendChild(d);
-        });
-        body.scrollTop = body.scrollHeight;
-      });
-  });
-});
-// Închizi chat-ul
-document.getElementById('chat-close-btn').addEventListener('click', () => {
-  document.getElementById('chat-panel').classList.remove('open');
-});
-
-// ─── Add Friend Button ────────────────────────────────────────
-document.getElementById('add-friend-btn').addEventListener('click', () => {
-  const handle = prompt('Friend handle (@username):','@');
-  if (!handle || handle[0] !== '@') {
-    return alert('Invalid handle. Trebuie să înceapă cu @');
-  }
-  // trimiți cererea
-  fetch('send_friend_request.php', {
-    method: 'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `handle=${encodeURIComponent(handle)}`
-  })
-  .then(r => r.json())
-  .then(json => {
-    if (json.success) {
-      alert('Request sent!');
-    } else {
-      alert('Error: ' + (json.error||''));
-    }
-  })
-  .catch(() => alert('Network error.'));
-});

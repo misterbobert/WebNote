@@ -1,22 +1,56 @@
 <?php
 session_start();
 require 'config.php';
+
 header('Content-Type: application/json');
 
-$me    = $_SESSION['user_id'] ?? null;
-$other = $_GET['with'] ?? null;
-if (!$me || !$other) {
-    http_response_code(400);
-    echo json_encode([]);
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Utilizatorul nu este autentificat.'
+    ]);
     exit;
 }
 
-$stmt = $pdo->prepare("
-  SELECT sender_id, receiver_id, content, created_at
-    FROM messages
-   WHERE (sender_id=? AND receiver_id=?)
-      OR (sender_id=? AND receiver_id=?)
-ORDER BY created_at
-");
-$stmt->execute([$me,$other,$other,$me]);
-echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
+$userId = $_SESSION['user_id'];
+$withId = isset($_GET['with']) ? intval($_GET['with']) : 0;
+
+if (!$withId) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'ID-ul destinatarului nu a fost specificat.'
+    ]);
+    exit;
+}
+
+try {
+    if (!$pdo) {
+        throw new Exception('Conexiunea la baza de date a eșuat.');
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT m.*, u.username AS sender_username
+          FROM messages m
+          JOIN users u ON m.sender_id = u.id
+         WHERE (sender_id = ? AND receiver_id = ?)
+            OR (sender_id = ? AND receiver_id = ?)
+      ORDER BY m.created_at
+    ");
+    $stmt->execute([$userId, $withId, $withId, $userId]);
+
+    $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    echo json_encode([
+        'success' => true,
+        'messages' => $messages,
+        'debug' => 'Loaded ' . count($messages) . ' messages'
+    ]);
+
+} catch (Exception $e) {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Eroare la încărcarea mesajelor.',
+        'error' => $e->getMessage(),
+        'debug' => 'userId: ' . $userId . ', withId: ' . $withId
+    ]);
+}

@@ -1,48 +1,43 @@
 <?php
 session_start();
 require 'config.php';
+header('Content-Type: application/json');
 
-// 1) validate
-$content  = $_POST['content'] ?? '';
-$title    = trim($_POST['title'] ?? '') ?: 'Untitled note';
-$slug     = trim($_POST['slug']  ?? '');
-$editable = isset($_POST['editable']) && (int)$_POST['editable'] === 1 ? 1 : 0;
+$userId = $_SESSION['user_id'] ?? 0; // Dacă nu e logat, e user anonim (0)
 
-if ($content === '' || $slug === '') {
-    http_response_code(400);
-    exit('Missing content or slug');
+$title    = trim($_POST['title']    ?? '');
+$content  = trim($_POST['content']  ?? '');
+$slug     = trim($_POST['slug']     ?? '');
+$editable = isset($_POST['editable']) ? 1 : 0;
+
+if (!$slug || !$content) {
+    echo json_encode(['success' => false, 'error' => 'Slug și conținut sunt obligatorii.']);
+    exit;
 }
 
-// 2) encrypt
-$method = 'AES-256-CBC';
-$key    = ENCRYPTION_KEY;
-$iv     = random_bytes(openssl_cipher_iv_length($method));
-$cipher = openssl_encrypt($content, $method, $key, OPENSSL_RAW_DATA, $iv);
-$b64c   = base64_encode($cipher);
-$b64iv  = base64_encode($iv);
-
-// 3) upsert
-$stmt = $pdo->prepare("SELECT id FROM notes WHERE slug = ? AND user_id = 0");
+// Verificăm unicitatea slugului
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM notes WHERE slug = ?");
 $stmt->execute([$slug]);
-if ($row = $stmt->fetch()) {
-    $upd = $pdo->prepare("
-      UPDATE notes
-         SET title   = ?,
-             content = ?,
-             iv      = ?,
-             editable= ?
-       WHERE id = ?");
-    $upd->execute([$title, $b64c, $b64iv, $editable, $row['id']]);
-} else {
-    $ins = $pdo->prepare("
-      INSERT INTO notes
-        (user_id,title,content,iv,slug,editable)
-      VALUES
-        (0,?,?,?,?,?)");
-    $ins->execute([ $title, $b64c, $b64iv, $slug, $editable ]);
+if ($stmt->fetchColumn() > 0) {
+    echo json_encode(['success' => false, 'error' => 'Slugul există deja.']);
+    exit;
 }
 
-// 4) redirect back into /WebNote/{slug}
-$base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');  // "/WebNote"
-header('Location: '.$base.'/'.rawurlencode($slug));
-exit;
+// Criptăm notița
+$iv = openssl_random_pseudo_bytes(16);
+$encrypted = openssl_encrypt($content, 'AES-256-CBC', ENCRYPTION_KEY, OPENSSL_RAW_DATA, $iv);
+$b64iv = base64_encode($iv);
+$b64cipher = base64_encode($encrypted);
+
+// Salvăm notița
+$insert = $pdo->prepare("
+    INSERT INTO notes (user_id, title, slug, content, iv, editable)
+    VALUES (?, ?, ?, ?, ?, ?)
+");
+$ok = $insert->execute([$userId, $title, $slug, $b64cipher, $b64iv, $editable]);
+
+if ($ok) {
+    echo json_encode(['success' => true, 'link' => $slug]);
+} else {
+    echo json_encode(['success' => false, 'error' => 'Eroare la salvarea în DB.']);
+}

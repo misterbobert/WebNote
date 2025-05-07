@@ -149,7 +149,69 @@ if ($uid) {
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 
   <meta name="theme-color" content="#5C807D">
+<style>
+ 
+  /* hide by default */
+  #chat-container {
+    display: none;
+  }
 
+  /* show when .open is present */
+  #chat-container.open {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    width: 350px;
+    height: 400px;
+    position: fixed;
+    bottom: 0;
+    left: 250px;
+    background: var(--clr-main);
+    overflow: hidden;
+    z-index: 1000;
+  }
+
+  /* message area scrolls */
+  #chat-container .chat-messages-wrapper {
+    overflow-y: auto;
+    padding: 0.5rem;
+  }
+
+  /* input row stuck to bottom */
+  #chat-container .chat-input-area {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-top: 1px solid rgba(0,0,0,0.1);
+    background: var(--clr-dark);
+  }
+  #chat-container .chat-input-area textarea {
+    flex: 1;
+    resize: none;
+  }
+ 
+  .message {
+    padding: 8px;
+    margin-bottom: 8px;
+    max-width: 70%;
+    word-wrap: break-word;
+    border-radius: 8px;
+}
+
+.sent {
+    background-color: #3498db;
+    color: #fff;
+    margin-left: auto;
+    text-align: right;
+}
+
+.received {
+    background-color: #ecf0f1;
+    color: #333;
+    margin-right: auto;
+    text-align: left;
+}
+
+</style>
   <script>
     // expose to JS
     window.myId           = <?= json_encode($uid) ?>;
@@ -241,8 +303,10 @@ if ($uid) {
                    class="friend-avatar" alt="">
               <span class="friend-name">@<?= htmlspecialchars($f['username']) ?></span>
               <button class="chat-icon btn"
-                      data-user="@<?= htmlspecialchars($f['username']) ?>"
-                      title="Chat">💬</button>
+        data-user-id="<?= $f['id'] ?>"
+        data-user="@<?= htmlspecialchars($f['username']) ?>"
+        title="Chat">💬</button>
+
             </div>
             <?php endforeach; ?>
           <?php endif; ?>
@@ -270,7 +334,8 @@ if ($uid) {
 
 
 
-  <button type="button" id="share-btn" class="panel-btn">Share</butston>
+<button type="button" id="share-btn" class="panel-btn">Share</button>
+
   <button type="button" id="delete-btn" class="panel-btn delete-btn" style="background-color:#e74c3c; color:#fff; margin-left:0.5rem">
     Delete
   </button>
@@ -286,18 +351,24 @@ if ($uid) {
     </main>
   </div>
 
-  <!-- CHAT POP-UP -->
-  <div id="chat-panel" class="chat-panel">
-    <div class="chat-header">
-      <span id="chat-with"></span>
-      <button id="chat-close-btn" class="chat-close">✖️</button>
-    </div>
-    <div id="chat-body" class="chat-body"></div>
-    <div class="chat-input-area">
-      <textarea id="chat-input" placeholder="Type a message…"></textarea>
-      <button id="chat-send" class="chat-send">SEND</button>
-    </div>
+<!-- CHAT POP‑UP -->
+<!-- CHAT POP‑UP -->
+<div id="chat-container" class="chat-panel">
+  <div class="chat-header">
+    <span id="chat-title">Chat</span>
+    <button id="chat-close" class="chat-close">✖️</button>
   </div>
+  <div class="chat-messages-wrapper">
+    <div id="chat-body" class="chat-body">Nu sunt mesaje de afișat.</div>
+  </div>
+  <div class="chat-input-area">
+    <textarea id="chat-input" placeholder="Type a message…"></textarea>
+    <button id="chat-send" class="chat-send">SEND</button>
+  </div>
+</div>
+
+<!-- hidden holder for recipient ID -->
+<div id="chat-with" data-user-id="" style="display: none;"></div>
 
   <!-- SHARE MODAL -->
   <div id="share-modal" class="modal" style="display:none;">
@@ -315,7 +386,7 @@ if ($uid) {
         <input type="hidden" name="content" id="share-content">
         <input type="hidden" name="title"   id="share-title">
         <div class="modal-actions" style="margin-top:1rem;">
-          <button type="button" id="share-cancel" class="panel-btn">Cancel</button><button type="submit" id="share-confirm" class="panel-btn">Share</button>
+          <button type="button" id="share-cancel" class="panel-btn">Cancel</button><button type="button" id="share-confirm" class="panel-btn">Share</button>
 
         </div>
           <!-- … restul share-modal … -->
@@ -360,7 +431,7 @@ function setupAutosave() {
     const titleInput = document.getElementById('note-title-input');
     const localIdInput = document.getElementById('local-id');
 
-    const content = quill.root.innerHTML.trim();
+    const content = quill.getText().trim() ? quill.root.innerHTML.trim() : '';
     let title = titleInput.value.trim();
     let localId = localIdInput.value.trim();
 
@@ -370,7 +441,7 @@ function setupAutosave() {
   const titleInput = document.getElementById('note-title-input');
   const localIdInput = document.getElementById('local-id');
 
-  const content = quill.root.innerHTML.trim();
+  const content = quill.getText().trim() ? quill.root.innerHTML.trim() : '';
   let title = titleInput.value.trim();
   let localId = localIdInput.value.trim();
 
@@ -533,6 +604,20 @@ document.addEventListener('click', function(e) {
 });
 
 
+// Funcție pentru deschiderea chatului
+function openChat(userId, username) {
+  const chatWithElement = document.getElementById('chat-with');
+  const chatTitle = document.getElementById('chat-title');
+
+  chatWithElement.dataset.userId = userId;
+  chatTitle.textContent = `Chat cu @${username}`;
+
+  chatContainer.classList.add('open');
+
+  // ✅ Aici e corect apelată funcția
+  loadMessages(userId);
+
+}
 
 
 
@@ -608,7 +693,22 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeQuill();
   setupEventListeners();
   showLocalNotes();
+  // Elimină complet linia asta din DOMContentLoaded:
+// loadMessages(userId);
 
+// Mesajele se încarcă doar când se deschide chatul:
+function openChat(userId, username) {
+  const chatWithElement = document.getElementById('chat-with');
+  const chatTitle = document.getElementById('chat-title');
+
+  chatWithElement.dataset.userId = userId;
+  chatTitle.textContent = `Chat cu @${username}`;
+
+  chatContainer.classList.add('open');
+
+  // Aici corectăm: încarcă mesaje CU userId-ul cu care vorbești
+  loadMessages(userId);
+}
   const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
   const draftNote = notes.find(note => note.id.startsWith('draft-'));
   const changeTitleBtn = document.getElementById('change-title-btn'); 
@@ -626,6 +726,51 @@ if (changeTitleBtn) changeTitleBtn.addEventListener('click', changeNoteTitle);
   } else {
     console.log('ℹ️ No draft found.');
   }
+
+  function refreshAccountNotes() {
+  fetch('get_notes.php')
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        console.warn('⚠️ Nu s-au putut încărca notițele:', data.message);
+        return;
+      }
+
+      // Șterge lista veche
+      const notesList = document.getElementById('notes-list');
+      notesList.innerHTML = '';
+
+      data.notes.forEach(note => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'panel-btn note-btn';
+        btn.textContent = note.title || note.preview;
+        btn.dataset.id = note.id;
+        btn.dataset.slug = note.slug;
+
+        btn.addEventListener('click', () => {
+          quill.root.innerHTML = note.full;
+          document.getElementById('note-title-display').innerText = note.title;
+          document.getElementById('note-title-input').value = note.title;
+          document.getElementById('note-id').value = note.id;
+          document.getElementById('note-slug').value = note.slug;
+        });
+
+        notesList.appendChild(btn);
+      });
+
+      console.log(`📝 Notițe actualizate: ${data.notes.length}`);
+    })
+    .catch(err => console.error('Eroare la încărcarea notițelor:', err));
+}
+
+// Apelează-o după DOM Ready
+refreshAccountNotes();
+
+
+
+
+
 });
 
 // Event listener pentru butoanele Reject și Accept
@@ -661,8 +806,207 @@ function handleFriendRequest(frId, action) {
     })
     .catch(error => console.error('Error:', error));
 }
+function loadMessages(userId) {
+  console.log("📥 Fetching messages with user:", userId); // Debug
+    fetch(`load_messages.php?with=${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            const chatBody = document.getElementById('chat-body');
+            chatBody.innerHTML = '';
+
+            if (data.success) {
+                data.messages.forEach(message => {
+                    const isSender = message.sender_id == window.myId;
+                    const messageClass = isSender ? 'sent' : 'received';
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message', messageClass);
+                    messageDiv.textContent = message.message;
+
+                    chatBody.appendChild(messageDiv);
+                });
+            } else {
+                chatBody.innerHTML = '<p>Nu sunt mesaje de afișat.</p>';
+            }
+        })
+        .catch(err => console.error('Eroare la conectarea cu serverul:', err));
+}
 
 
+const chatContainer = document.getElementById('chat-container'); 
+const chatClose     = document.getElementById('chat-close');
+
+// open/close via class
+ 
+// close when “✖️” clicked
+ 
+// in your openChat(userId,username) function, replace any style.display=… with: 
+// open when any .chat-icon is clicked
+// Deschidere chat
+// Deschidere chat
+document.querySelectorAll('.chat-icon').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const userId = btn.dataset.userId;
+    const username = btn.dataset.user.replace('@', '');
+
+    if (!userId || !username) {
+      console.warn('User ID sau username lipsă.');
+      return;
+    }
+
+    openChat(userId, username);
+  });
+});
+
+
+
+// close on “✖️”
+chatClose.addEventListener('click', () => {
+  chatContainer.classList.remove('open');
+});
+// Event Listener pentru butonul SEND
+// Event Listener pentru butonul SEND
+ 
+ 
+ 
+document.getElementById('chat-send').addEventListener('click', () => {
+    const chatInput = document.getElementById('chat-input');
+    const message = chatInput.value.trim();
+    const receiverId = document.getElementById('chat-with').dataset.userId;
+
+    if (!message) {
+        console.warn('Mesajul este gol.');
+        return;
+    }
+
+    if (!receiverId) {
+        console.warn('Destinatarul lipsește.');
+        return;
+    }
+
+    console.log('Trimitem:', { receiver_id: receiverId, message: message });
+
+    fetch('send_message.php', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        receiver_id: receiverId,
+        message: message
+    })
+})
+.then(response => response.text()) // Citește răspunsul ca text pentru debug
+.then(data => {
+    console.log('Răspuns brut primit:', data); // Vezi exact ce vine de la server
+
+    try {
+        const jsonData = JSON.parse(data);
+        if (jsonData.success) {
+    console.log('✅ Mesaj trimis:', message);
+    chatInput.value = '';
+    location.reload(); // ⬅️ acest rând face refresh
+}
+else {
+            console.error('Eroare la trimiterea mesajului:', jsonData.message);
+        }
+    } catch (err) {
+        console.error('Eroare la parsarea JSON:', err, 'Răspuns:', data);
+    }
+})
+.catch(err => console.error('Eroare la conectarea cu serverul:', err));
+
+});
+ 
+function attachChatHandler(btn) {
+  btn.addEventListener('click', () => {
+    const uid = btn.closest('.friend-item').dataset.userId;  // <- verifică dacă returnează ceva
+    if (!uid) {
+      console.warn('❌ Missing data-user-id');
+      return;
+    }
+
+    currentChatUserId = uid;
+
+    const chatTitle = document.getElementById('chat-title');
+    chatTitle.textContent = `Chat cu ${btn.dataset.user}`;
+    chatTitle.dataset.userId = uid;
+
+    const chatBody = document.getElementById('chat-body');
+    chatBody.innerHTML = '';
+    document.getElementById('chat-container').classList.add('open');
+
+    // ✅ FETCH corect
+    fetch(`load_messages.php?with=${uid}`)
+      .then(r => r.json())
+      .then(msgs => {
+        console.log('💬 Loaded:', msgs);
+        msgs.forEach(m => {
+          const d = document.createElement('div');
+          d.className = m.sender_id == window.myId ? 'chat-message-outgoing' : 'chat-message-incoming';
+          d.textContent = m.content;
+          chatBody.appendChild(d);
+        });
+        chatBody.scrollTop = chatBody.scrollHeight;
+      });
+  });
+}
+ 
+function openShareModal() {
+  const title = document.getElementById('note-title-input').value || 'Untitled note';
+  document.getElementById('share-slug').value = title.replace(/\s+/g, '');
+  document.getElementById('share-title').value = title;
+  document.getElementById('share-content').value = quill.root.innerHTML.trim();
+  document.getElementById('share-editable').checked = false;
+  document.getElementById('share-modal').style.display = 'flex';
+}
+
+// ✅ Atașează corect când DOM-ul e gata:
+document.addEventListener('DOMContentLoaded', () => {
+  // ... alte inițializări
+  document.getElementById('share-btn').addEventListener('click', openShareModal);
+  
+  document.getElementById('share-confirm').addEventListener('click', submitShareForm);
+});
+function submitShareForm(event) {
+  event.preventDefault(); // 🛑 oprește submit-ul nativ al formularului
+
+  const slug = document.getElementById('share-slug').value.trim();
+  const editable = document.getElementById('share-editable').checked ? 1 : 0;
+  const content = quill.getText().trim() ? quill.root.innerHTML.trim() : '';
+  const title = document.getElementById('share-title').value || 'Untitled note';
+
+  if (!slug || !content) {
+    alert('Trebuie completat numele linkului și conținutul!');
+    return;
+  }
+
+  const params = new URLSearchParams();
+  params.append('slug', slug);
+  params.append('title', title);
+  params.append('content', content);
+  if (editable) params.append('editable', '1');
+
+  fetch('share_note.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  })
+  .then(r => r.json())
+  .then(j => {
+    if (j.success) {
+      const fullUrl = `${window.location.origin}/${j.link}`;
+      prompt('🔗 Copiază linkul partajabil:', fullUrl);
+      window.location.href = `/${j.link}`;
+    } else {
+      alert('❌ Eroare: ' + (j.error || ''));
+    }
+  })
+  .catch(err => {
+    alert('Eroare de rețea.');
+    console.error(err);
+  });
+}
 
 
 </script>

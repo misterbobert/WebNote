@@ -1290,3 +1290,37 @@ html, body {
   overflow-y: auto;
 }
  
+#chat-body {
+  padding: 10px;
+  overflow-y: auto;
+  height: 300px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+.sent {
+  align-self: flex-end;
+  background-color: #3498db;
+  color: #fff;
+}
+
+.received {
+  align-self: flex-start;
+  background-color: #ecf0f1;
+  color: #333;
+}
+
+.message-meta {
+  font-size: 12px;
+  margin-top: 5px;
+  text-align: right;
+  opacity: 0.6;
+}
