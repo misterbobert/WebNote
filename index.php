@@ -267,12 +267,14 @@ if ($uid) {
 <input type="hidden" id="note-slug" name="slug" value="<?= htmlspecialchars($initialNote['slug'] ?? '') ?>">
 <input type="hidden" id="note-title-input" name="title" value="<?= htmlspecialchars($initialNote['title'] ?? '') ?>">
 <input type="hidden" id="local-id" name="localId">
-
-  <button type="button" class="panel-btn save-note-btn">Save to account</button> 
-  <button type="button" id="share-btn" class="panel-btn">Share</button>
+<button type="button" class="panel-btn save-note-btn" onclick="saveToAccount()">Save to account</button>
+  <button type="button" id="share-btn" class="panel-btn">Share</butston>
   <button type="button" id="delete-btn" class="panel-btn delete-btn" style="background-color:#e74c3c; color:#fff; margin-left:0.5rem">
     Delete
   </button>
+  <button type="button" id="change-title-btn" class="panel-btn" style="background-color:#3498db; color:#fff; margin-left:0.5rem">
+  Change Title
+</button>
 
   <div id="quill-editor" style="height:100%;"></div>
 <input type="hidden" name="content" id="hidden-content">
@@ -339,61 +341,56 @@ if ($uid) {
     </div>
   </div>
 
-  <!-- SAVE TO LOCALSTORAGE MODAL -->
-  <div id="save-local-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-      <h3>Save to LocalStorage</h3>
-      <label>
-        Title:
-        <input type="text" id="save-local-title" class="panel-input" placeholder="Titlul notiței">
-      </label>
-      <div class="modal-actions" style="margin-top:1rem;">
-        <button type="button" id="save-local-cancel" class="panel-btn">Cancel</button>
-        <button type="button" id="save-local-confirm" class="panel-btn">Save</button>
-      </div>
-    </div>
-  </div>
+ 
  
   <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 <script>let quill;
 let autosaveTimeout;
 // Autosave Function
+// Autosave Function
+// Autosave Function
+// Autosave Function
+// Autosave Function
+// Autosave Function
+// Autosave Function
 function setupAutosave() {
   quill.on('text-change', () => {
-    const hiddenInput = document.getElementById('hidden-content');
     const titleInput = document.getElementById('note-title-input');
     const localIdInput = document.getElementById('local-id');
 
     const content = quill.root.innerHTML.trim();
-    const title = titleInput.value.trim() || 'Untitled note';
+    let title = titleInput.value.trim();
     let localId = localIdInput.value.trim();
-
-    hiddenInput.value = content;
 
     clearTimeout(autosaveTimeout);
     autosaveTimeout = setTimeout(() => {
-      if (!localId) {
-        // Creează un ID temporar pentru draft
-        localId = 'draft-' + Date.now().toString();
-        localIdInput.value = localId;
-      }
-
       let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
-      const index = notes.findIndex(note => note.id === localId);
 
-      if (index === -1) {
-        notes.push({ id: localId, title, content });
-        console.log('✅ Draft autosaved:', localId);
+      if (!localId) {
+        localId = 'draft-' + Date.now();
+        localIdInput.value = localId;
+        notes.push({ id: localId, title: title || 'Untitled note', content });
+        console.log('✅ New draft autosaved:', localId);
       } else {
-        notes[index].title = title;
-        notes[index].content = content;
-        console.log('✅ Draft updated:', localId);
+        const index = notes.findIndex(note => note.id === localId);
+
+        if (index !== -1) {
+          notes[index].title = title || 'Untitled note';
+          notes[index].content = content;
+          console.log('✅ Draft updated:', localId);
+        } else {
+          notes.push({ id: localId, title: title || 'Untitled note', content });
+          console.log('✅ New draft added:', localId);
+        }
       }
 
       localStorage.setItem('localNotes', JSON.stringify(notes));
+      showLocalNotes();
     }, 1000);
   });
 }
+
+
 
 // Inițializare Quill
 function initializeQuill() {
@@ -420,98 +417,172 @@ function initializeQuill() {
 
 
 // Creare Notiță Nouă
-function createNewNote() {
+// Creare Notiță Nouă
+// Creare Notiță Nouă// Creare Notiță Nouă
+// Creare Notiță Nouă
+// Creare Notiță Nouă
+function createNewNote(forceNew = false) {
+  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+
+  // Verificăm dacă există deja un draft activ
+  const existingDraft = notes.find(note => note.id.startsWith('draft-'));
+
+  if (existingDraft && !forceNew) {
+    console.warn('⚠️ Existent draft found, loading it instead:', existingDraft.id);
+    quill.root.innerHTML = existingDraft.content;
+    document.getElementById('note-title-display').innerText = existingDraft.title || 'Untitled note';
+    document.getElementById('note-title-input').value = existingDraft.title;
+    document.getElementById('local-id').value = existingDraft.id;
+    return;
+  }
+
+  // Creare și salvare nou draft
+  const newId = 'draft-' + Date.now();
+  document.getElementById('local-id').value = newId;
+
+  notes.push({ id: newId, title: 'Untitled note', content: '' });
+  localStorage.setItem('localNotes', JSON.stringify(notes));
+
+  // Resetare editor
   quill.root.innerHTML = '';
   document.getElementById('note-title-display').innerText = 'Untitled note';
-  document.getElementById('note-title-input').value = '';
-  document.getElementById('local-id').value = '';
-  document.getElementById('note-id').value = '';
-  document.getElementById('note-slug').value = '';
-  document.getElementById('hidden-content').value = '';
-  console.log('✅ New note created');
+  document.getElementById('note-title-input').value = 'Untitled note';
+
+  console.log('✅ New note created and draft initialized:', newId);
+  showLocalNotes();
 }
 
+
+
+
+// Afișare Notițe Locale
+// Afișare Notițe Locale
+// Afișare Notițe Locale
+// Afișare Notițe Locale
 // Afișare Notițe Locale
 function showLocalNotes() {
-  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+
+  // Sortare: Draft-uri primele, apoi restul, iar cele mai recente primele
+  notes.sort((a, b) => {
+    const isDraftA = a.id.startsWith('draft-');
+    const isDraftB = b.id.startsWith('draft-');
+
+    if (isDraftA && !isDraftB) return -1;
+    if (!isDraftA && isDraftB) return 1;
+
+    return b.id.localeCompare(a.id);
+  });
+
   const container = document.getElementById('notes-list');
   container.innerHTML = '';
 
   notes.forEach(note => {
-    // Exclude notițele de tip "draft-..."
-    if (!note.id.startsWith('draft-')) {
-      const btn = document.createElement('button');
-      btn.className = 'panel-btn note-btn';
-      btn.textContent = note.title || 'Untitled';
-      btn.addEventListener('click', () => {
-        quill.root.innerHTML = note.content;
-        document.getElementById('note-title-display').innerText = note.title;
-        document.getElementById('note-title-input').value = note.title;
-        document.getElementById('local-id').value = note.id;
-        document.getElementById('hidden-content').value = note.content;
-        console.log('✅ Note loaded:', note.id);
-      });
-      container.appendChild(btn);
-    }
+    const btn = document.createElement('button');
+    btn.className = 'panel-btn note-btn';
+    btn.textContent = note.title || 'Untitled note';
+    btn.addEventListener('click', () => {
+      quill.root.innerHTML = note.content;
+      document.getElementById('note-title-display').innerText = note.title;
+      document.getElementById('note-title-input').value = note.title;
+      document.getElementById('local-id').value = note.id;
+      console.log('✅ Note loaded:', note.id);
+    });
+    container.appendChild(btn);
   });
 }
 
 
+
+
+// Salvare în Cont
 // Salvare în Cont
 function saveToAccount() {
-  const newTitle = document.getElementById('save-account-title').value.trim();
-  if (!newTitle) return alert("Completează titlul!");
-
-  document.getElementById('note-title-input').value = newTitle;
-  document.getElementById('note-title-display').innerText = newTitle;
-  document.getElementById('hidden-content').value = quill.root.innerHTML;
-
-  document.getElementById('editor-form').submit();
-  document.getElementById('save-account-modal').style.display = 'none';
-}
-
-// Salvare în LocalStorage
-function saveToLocal() {
-  const title = document.getElementById('save-local-title').value.trim();
+  const titleInput = document.getElementById('note-title-input').value.trim();
   const content = quill.root.innerHTML.trim();
-  const id = Date.now().toString();
 
-  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
-  notes.push({ id, title, content });
-  localStorage.setItem('localNotes', JSON.stringify(notes));
+  if (!titleInput || !content) {
+    alert("Titlul și conținutul sunt obligatorii.");
+    console.log("Titlul sau conținutul lipsesc:", { titleInput, content });
+    return;
+  }
 
-  document.getElementById('save-local-modal').style.display = 'none';
-  alert('✅ Note saved locally.');
-  showLocalNotes();
+  // Actualizăm câmpurile hidden
+  document.getElementById('hidden-content').value = content;
+  document.getElementById('note-title-input').value = titleInput;
+
+  console.log('Saving note with title:', titleInput, 'and content:', content);
+
+  // Trimitem formularul
+  document.getElementById('editor-form').submit();
 }
 
+// Ștergere Notiță
+// Ștergere Notiță
 // Ștergere Notiță
 function deleteNote() {
   if (confirm('Sigur vrei să ștergi această notiță?')) {
     const localId = document.getElementById('local-id').value.trim();
     let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+
     notes = notes.filter(note => note.id !== localId);
     localStorage.setItem('localNotes', JSON.stringify(notes));
 
     console.log('✅ Note deleted:', localId);
-    createNewNote();
+
+    // Resetare editor
+    quill.root.innerHTML = '';
+    document.getElementById('note-title-display').innerText = 'Untitled note';
+    document.getElementById('note-title-input').value = '';
+    document.getElementById('local-id').value = '';
+
     showLocalNotes();
   }
 }
 
+
+// Event Listeners
+// Actualizează această funcție
 // Event Listeners
 function setupEventListeners() {
   const newNoteBtn = document.getElementById('new-note');
-  const saveAccountBtn = document.getElementById('save-account-confirm');
-  const saveLocalBtn = document.getElementById('save-local-confirm');
   const deleteBtn = document.getElementById('delete-btn');
 
-  if (newNoteBtn) newNoteBtn.addEventListener('click', createNewNote);
-  if (saveAccountBtn) saveAccountBtn.addEventListener('click', saveToAccount);
-  if (saveLocalBtn) saveLocalBtn.addEventListener('click', saveToLocal);
+  if (newNoteBtn) newNoteBtn.addEventListener('click', () => createNewNote(true)); // Force New Note
   if (deleteBtn) deleteBtn.addEventListener('click', deleteNote);
 }
+function changeNoteTitle() {
+  const localId = document.getElementById('local-id').value.trim();
+  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
 
+  if (!localId) {
+    alert("No active note to rename.");
+    return;
+  }
+
+  const newTitle = prompt("Enter the new title:");
+  if (!newTitle) return;
+
+  // Actualizăm titlul în editor
+  document.getElementById('note-title-display').innerText = newTitle;
+  document.getElementById('note-title-input').value = newTitle;
+
+  // Actualizăm titlul în localStorage
+  const index = notes.findIndex(note => note.id === localId);
+  if (index !== -1) {
+    notes[index].title = newTitle;
+  } else {
+    // Dacă nota nu există în localStorage, o adăugăm
+    notes.push({ id: localId, title: newTitle, content: quill.root.innerHTML });
+  }
+
+  localStorage.setItem('localNotes', JSON.stringify(notes));
+  console.log('✅ Title updated for note:', localId);
+  showLocalNotes();
+}
+
+
+// DOM Ready
 // DOM Ready
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -521,17 +592,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
   const draftNote = notes.find(note => note.id.startsWith('draft-'));
+  const changeTitleBtn = document.getElementById('change-title-btn'); 
+if (changeTitleBtn) changeTitleBtn.addEventListener('click', changeNoteTitle);
+ 
+
+
 
   if (draftNote) {
     quill.root.innerHTML = draftNote.content;
     document.getElementById('note-title-input').value = draftNote.title;
-    document.getElementById('note-title-display').innerText = draftNote.title;
+    document.getElementById('note-title-display').innerText = draftNote.title || 'Untitled note';
     document.getElementById('local-id').value = draftNote.id;
     console.log('✅ Draft loaded:', draftNote.id);
   } else {
     console.log('ℹ️ No draft found.');
   }
 });
+
 
 
 

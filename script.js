@@ -148,22 +148,7 @@ function loadLocalNotes() {
   loadLocalNotes();
 
   // ───────── save to localStorage modal ─────────
-  saveLocalBtn.addEventListener('click', () => {
-    slInput.value = titleDisplay.textContent==='Untitled note'?'':titleDisplay.textContent;
-    slModal.style.display = 'flex';
-  });
-  slCancel.addEventListener('click', () => slModal.style.display='none');
-  slConfirm.addEventListener('click', () => {
-    const t = slInput.value.trim();
-    if (!t) return alert('Trebuie un titlu.');
-    titleDisplay.textContent = t;
-    titleInput.value         = t;
-    const arr = JSON.parse(localStorage.getItem('localNotes') || '[]');
-    arr.push({ id: Date.now(), title: t, content: editorInput.value });
-    localStorage.setItem('localNotes', JSON.stringify(arr));
-    loadLocalNotes();
-    slModal.style.display='none';
-  });
+ 
 
   // ───────── save to account modal ─────────
   saveBtn.addEventListener('click', () => {
@@ -301,21 +286,7 @@ function loadLocalNotes() {
     }
     
   });
-  afCancel.addEventListener('click', () => afModal.style.display='none');
-  afConfirm.addEventListener('click', () => {
-    const h = afInput.value.trim();
-    if (!h||h[0]!=='@') return alert('Invalid handle');
-    fetch('send_friend_request.php',{
-      method:'POST',
-      headers:{'Content-Type':'application/x-www-form-urlencoded'},
-      body:'handle='+encodeURIComponent(h)
-    }).then(r=>r.json())
-      .then(j=>{
-        if (j.success) { alert('Request sent!'); afModal.style.display='none'; }
-        else alert('Error: '+(j.error||''));
-      }).catch(()=>alert('Network error.'));
-  });
-
+ 
   // ───────── chat pop-up ─────────
   function attachChatHandler(btn) {
     btn.addEventListener('click', () => {

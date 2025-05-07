@@ -2,73 +2,50 @@
 session_start();
 require 'config.php';
 
-// 1) verifică dacă ești logat
-if (!isset($_SESSION['user_id'])) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Neautentificat']);
-    exit;
-}
-
-$uid     = $_SESSION['user_id'];
-$id      = isset($_POST['id']) && ctype_digit($_POST['id']) ? (int)$_POST['id'] : null;
-$slug    = trim($_POST['slug'] ?? '');
-$title   = trim($_POST['title'] ?? '');
+$uid = $_SESSION['user_id'] ?? null;
+$title = trim($_POST['title'] ?? '');
 $content = trim($_POST['content'] ?? '');
+$noteId = trim($_POST['id'] ?? '');
 
-// 2) validare minimă
-if ($title === '' || $content === '') {
-    header('Content-Type: application/json');
+if (empty($title) || empty($content)) {
     echo json_encode(['success' => false, 'error' => 'Titlul și conținutul sunt obligatorii.']);
     exit;
 }
 
-// 3) criptare AES
-$method     = 'AES-256-CBC';
-$key        = ENCRYPTION_KEY;
-$iv_len     = openssl_cipher_iv_length($method);
-$iv         = random_bytes($iv_len);
-$cipher     = openssl_encrypt($content, $method, $key, OPENSSL_RAW_DATA, $iv);
-$cipher_b64 = base64_encode($cipher);
-$iv_b64     = base64_encode($iv);
-
-try {
-    // 4) UPDATE dacă avem id sau slug
-    if ($id || $slug !== '') {
-        $sql = "UPDATE notes SET title = ?, content = ?, iv = ?";
-        $params = [$title, $cipher_b64, $iv_b64];
-
-        if ($slug !== '') {
-            $sql .= ", slug = ?";
-            $params[] = $slug;
-        }
-
-        $sql .= $id ? " WHERE id = ? AND user_id = ?" : " WHERE slug = ? AND user_id = ?";
-        $params[] = $id ?: $slug;
-        $params[] = $uid;
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-    } else {
-        // 5) INSERT dacă nu există id și slug
-        $sql = "
-            INSERT INTO notes (user_id, title, content, iv" . ($slug !== '' ? ", slug" : "") . ")
-            VALUES (?, ?, ?, ?" . ($slug !== '' ? ", ?" : "") . ")
-        ";
-        $params = [$uid, $title, $cipher_b64, $iv_b64];
-        if ($slug !== '') {
-            $params[] = $slug;
-        }
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-    }
-
-    // 6) succes
-    header('Content-Type: application/json');
-    echo json_encode(['success' => true]);
-    exit;
-
-} catch (Exception $e) {
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'Eroare la salvare: ' . $e->getMessage()]);
+if (!$uid) {
+    echo json_encode(['success' => false, 'error' => 'Trebuie să fii autentificat pentru a salva notița.']);
     exit;
 }
+
+try {
+    if ($noteId) {
+        // Update note existentă
+        $stmt = $pdo->prepare("
+            UPDATE notes 
+            SET title = ?, content = ?, updated_at = NOW() 
+            WHERE id = ? AND user_id = ?
+        ");
+        $stmt->execute([$title, $content, $noteId, $uid]);
+
+        if ($stmt->rowCount() > 0) {
+            echo json_encode(['success' => true, 'message' => 'Notița a fost actualizată cu succes.']);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Notița nu a fost găsită sau nu ai permisiuni pentru a o modifica.']);
+        }
+
+    } else {
+        // Creare notiță nouă
+        $stmt = $pdo->prepare("
+            INSERT INTO notes (user_id, title, content, created_at, updated_at) 
+            VALUES (?, ?, ?, NOW(), NOW())
+        ");
+        $stmt->execute([$uid, $title, $content]);
+
+        $newNoteId = $pdo->lastInsertId();
+
+        echo json_encode(['success' => true, 'message' => 'Notița a fost creată cu succes.', 'noteId' => $newNoteId]);
+    }
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => 'A apărut o eroare la salvarea notiței: ' . $e->getMessage()]);
+}
+?>
