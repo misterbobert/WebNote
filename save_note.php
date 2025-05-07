@@ -2,50 +2,37 @@
 session_start();
 require 'config.php';
 
-$uid = $_SESSION['user_id'] ?? null;
-$title = trim($_POST['title'] ?? '');
-$content = trim($_POST['content'] ?? '');
-$noteId = trim($_POST['id'] ?? '');
+header('Content-Type: application/json');
 
-if (empty($title) || empty($content)) {
-    echo json_encode(['success' => false, 'error' => 'Titlul și conținutul sunt obligatorii.']);
+$data = json_decode(file_get_contents('php://input'), true);
+$userId = $_SESSION['user_id'] ?? null;
+$noteId = $data['noteId'] ?? '';
+$title = $data['title'] ?? 'Untitled note';
+$content = $data['content'] ?? '';
+
+if (!$userId) {
+    echo json_encode(['success' => false, 'message' => 'User not logged in']);
     exit;
 }
 
-if (!$uid) {
-    echo json_encode(['success' => false, 'error' => 'Trebuie să fii autentificat pentru a salva notița.']);
+if (!$noteId) {
+    echo json_encode(['success' => false, 'message' => 'Note ID missing']);
     exit;
 }
 
-try {
-    if ($noteId) {
-        // Update note existentă
-        $stmt = $pdo->prepare("
-            UPDATE notes 
-            SET title = ?, content = ?, updated_at = NOW() 
-            WHERE id = ? AND user_id = ?
-        ");
-        $stmt->execute([$title, $content, $noteId, $uid]);
+// Verificăm dacă notița există deja
+$stmt = $pdo->prepare("SELECT id FROM notes WHERE user_id = ? AND id = ?");
+$stmt->execute([$userId, $noteId]);
+$exists = $stmt->fetchColumn();
 
-        if ($stmt->rowCount() > 0) {
-            echo json_encode(['success' => true, 'message' => 'Notița a fost actualizată cu succes.']);
-        } else {
-            echo json_encode(['success' => false, 'error' => 'Notița nu a fost găsită sau nu ai permisiuni pentru a o modifica.']);
-        }
-
-    } else {
-        // Creare notiță nouă
-        $stmt = $pdo->prepare("
-            INSERT INTO notes (user_id, title, content, created_at, updated_at) 
-            VALUES (?, ?, ?, NOW(), NOW())
-        ");
-        $stmt->execute([$uid, $title, $content]);
-
-        $newNoteId = $pdo->lastInsertId();
-
-        echo json_encode(['success' => true, 'message' => 'Notița a fost creată cu succes.', 'noteId' => $newNoteId]);
-    }
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'error' => 'A apărut o eroare la salvarea notiței: ' . $e->getMessage()]);
+if ($exists) {
+    // Update
+    $stmt = $pdo->prepare("UPDATE notes SET title = ?, content = ? WHERE user_id = ? AND id = ?");
+    $stmt->execute([$title, $content, $userId, $noteId]);
+    echo json_encode(['success' => true, 'message' => 'Note updated']);
+} else {
+    // Insert
+    $stmt = $pdo->prepare("INSERT INTO notes (id, user_id, title, content) VALUES (?, ?, ?, ?)");
+    $stmt->execute([$noteId, $userId, $title, $content]);
+    echo json_encode(['success' => true, 'message' => 'Note saved']);
 }
-?>

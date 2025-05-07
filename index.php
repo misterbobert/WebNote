@@ -267,7 +267,10 @@ if ($uid) {
 <input type="hidden" id="note-slug" name="slug" value="<?= htmlspecialchars($initialNote['slug'] ?? '') ?>">
 <input type="hidden" id="note-title-input" name="title" value="<?= htmlspecialchars($initialNote['title'] ?? '') ?>">
 <input type="hidden" id="local-id" name="localId">
-<button type="button" class="panel-btn save-note-btn" onclick="saveToAccount()">Save to account</button>
+<button type="button" class="panel-btn save-to-account" data-note-id="">Save to account</button>
+
+
+
   <button type="button" id="share-btn" class="panel-btn">Share</butston>
   <button type="button" id="delete-btn" class="panel-btn delete-btn" style="background-color:#e74c3c; color:#fff; margin-left:0.5rem">
     Delete
@@ -363,30 +366,39 @@ function setupAutosave() {
     let localId = localIdInput.value.trim();
 
     clearTimeout(autosaveTimeout);
-    autosaveTimeout = setTimeout(() => {
-      let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+    autosaveNote();
+    function autosaveNote() {
+  const titleInput = document.getElementById('note-title-input');
+  const localIdInput = document.getElementById('local-id');
 
-      if (!localId) {
-        localId = 'draft-' + Date.now();
-        localIdInput.value = localId;
-        notes.push({ id: localId, title: title || 'Untitled note', content });
-        console.log('✅ New draft autosaved:', localId);
-      } else {
-        const index = notes.findIndex(note => note.id === localId);
+  const content = quill.root.innerHTML.trim();
+  let title = titleInput.value.trim();
+  let localId = localIdInput.value.trim();
 
-        if (index !== -1) {
-          notes[index].title = title || 'Untitled note';
-          notes[index].content = content;
-          console.log('✅ Draft updated:', localId);
-        } else {
-          notes.push({ id: localId, title: title || 'Untitled note', content });
-          console.log('✅ New draft added:', localId);
-        }
-      }
+  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
 
-      localStorage.setItem('localNotes', JSON.stringify(notes));
-      showLocalNotes();
-    }, 1000);
+  if (!localId) {
+    localId = 'draft-' + Date.now();
+    localIdInput.value = localId;
+    notes.push({ id: localId, title: title || 'Untitled note', content });
+    console.log('✅ New draft autosaved:', localId);
+  } else {
+    const index = notes.findIndex(note => note.id === localId);
+
+    if (index !== -1) {
+      notes[index].title = title || 'Untitled note';
+      notes[index].content = content;
+      console.log('✅ Draft updated:', localId);
+    } else {
+      notes.push({ id: localId, title: title || 'Untitled note', content });
+      console.log('✅ New draft added:', localId);
+    }
+  }
+
+  localStorage.setItem('localNotes', JSON.stringify(notes));
+  showLocalNotes();
+}
+
   });
 }
 
@@ -424,26 +436,13 @@ function initializeQuill() {
 function createNewNote(forceNew = false) {
   const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
 
-  // Verificăm dacă există deja un draft activ
-  const existingDraft = notes.find(note => note.id.startsWith('draft-'));
-
-  if (existingDraft && !forceNew) {
-    console.warn('⚠️ Existent draft found, loading it instead:', existingDraft.id);
-    quill.root.innerHTML = existingDraft.content;
-    document.getElementById('note-title-display').innerText = existingDraft.title || 'Untitled note';
-    document.getElementById('note-title-input').value = existingDraft.title;
-    document.getElementById('local-id').value = existingDraft.id;
-    return;
-  }
-
-  // Creare și salvare nou draft
   const newId = 'draft-' + Date.now();
   document.getElementById('local-id').value = newId;
+  document.querySelector('.save-to-account').dataset.noteId = newId;
 
   notes.push({ id: newId, title: 'Untitled note', content: '' });
   localStorage.setItem('localNotes', JSON.stringify(notes));
 
-  // Resetare editor
   quill.root.innerHTML = '';
   document.getElementById('note-title-display').innerText = 'Untitled note';
   document.getElementById('note-title-input').value = 'Untitled note';
@@ -453,27 +452,13 @@ function createNewNote(forceNew = false) {
 }
 
 
-
-
 // Afișare Notițe Locale
 // Afișare Notițe Locale
 // Afișare Notițe Locale
 // Afișare Notițe Locale
 // Afișare Notițe Locale
 function showLocalNotes() {
-  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
-
-  // Sortare: Draft-uri primele, apoi restul, iar cele mai recente primele
-  notes.sort((a, b) => {
-    const isDraftA = a.id.startsWith('draft-');
-    const isDraftB = b.id.startsWith('draft-');
-
-    if (isDraftA && !isDraftB) return -1;
-    if (!isDraftA && isDraftB) return 1;
-
-    return b.id.localeCompare(a.id);
-  });
-
+  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
   const container = document.getElementById('notes-list');
   container.innerHTML = '';
 
@@ -481,13 +466,20 @@ function showLocalNotes() {
     const btn = document.createElement('button');
     btn.className = 'panel-btn note-btn';
     btn.textContent = note.title || 'Untitled note';
+    btn.dataset.noteId = note.id;
+
     btn.addEventListener('click', () => {
       quill.root.innerHTML = note.content;
       document.getElementById('note-title-display').innerText = note.title;
       document.getElementById('note-title-input').value = note.title;
       document.getElementById('local-id').value = note.id;
+
+      // Actualizăm `data-note-id` al butonului „Save to Account”
+      document.querySelector('.save-to-account').dataset.noteId = note.id;
+
       console.log('✅ Note loaded:', note.id);
     });
+
     container.appendChild(btn);
   });
 }
@@ -495,27 +487,55 @@ function showLocalNotes() {
 
 
 
+
 // Salvare în Cont
 // Salvare în Cont
-function saveToAccount() {
-  const titleInput = document.getElementById('note-title-input').value.trim();
-  const content = quill.root.innerHTML.trim();
+function saveNoteToAccount(noteId) {
+    const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+    const note = notes.find(note => note.id === noteId);
 
-  if (!titleInput || !content) {
-    alert("Titlul și conținutul sunt obligatorii.");
-    console.log("Titlul sau conținutul lipsesc:", { titleInput, content });
-    return;
-  }
+    if (!note) {
+        alert('Note not found in local storage.');
+        return;
+    }
 
-  // Actualizăm câmpurile hidden
-  document.getElementById('hidden-content').value = content;
-  document.getElementById('note-title-input').value = titleInput;
-
-  console.log('Saving note with title:', titleInput, 'and content:', content);
-
-  // Trimitem formularul
-  document.getElementById('editor-form').submit();
+    fetch('save_note.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            noteId: note.id,
+            title: note.title,
+            content: note.content
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Note saved to account successfully!');
+        } else {
+            alert('Failed to save note to account.');
+        }
+    })
+    .catch(error => console.error('Error:', error));
 }
+
+// Event Listener pentru butonul „Save to Account”
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('save-to-account')) {
+        const noteId = document.getElementById('local-id').value.trim();
+        if (!noteId) {
+            alert('No note selected to save.');
+            return;
+        }
+        saveNoteToAccount(noteId);
+    }
+});
+
+
+
+
 
 // Ștergere Notiță
 // Ștergere Notiță
