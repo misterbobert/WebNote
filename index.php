@@ -672,6 +672,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Elimină complet linia asta din DOMContentLoaded:
 // loadMessages(userId);
   initializeQuill();
+  document.getElementById('share-cancel').addEventListener('click', () => {
+  document.getElementById('share-modal').style.display = 'none';
+});
 
   // 🧠 Dacă nota e publică și editabilă, salvează în DB, altfel local
   if (initialNote && initialNote.editable) {
