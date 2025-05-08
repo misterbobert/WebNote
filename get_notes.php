@@ -1,40 +1,30 @@
 <?php
 session_start();
 require 'config.php';
-header('Content-Type: application/json');
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Neautentificat.']);
+// Verifică dacă utilizatorul este autentificat
+$uid = $_SESSION['user_id'] ?? null;
+if (!$uid) {
+    echo json_encode(['success' => false, 'error' => 'Nu ești autentificat']);
     exit;
 }
 
-$userId = $_SESSION['user_id'];
-
+// Interogare pentru a aduce toate notele utilizatorului
 $stmt = $pdo->prepare("
-    SELECT id, title, content, iv, slug
-    FROM notes
-    WHERE user_id = ?
-    ORDER BY created_at DESC
+  SELECT id, title, content, slug, editable
+  FROM notes
+  WHERE user_id = ?
+  ORDER BY created_at DESC
 ");
-$stmt->execute([$userId]);
+$stmt->execute([$uid]);
 
-function decrypt_note($b64cipher, $b64iv) {
-    $cipher = base64_decode($b64cipher);
-    $iv     = base64_decode($b64iv);
-    return openssl_decrypt($cipher, 'AES-256-CBC', ENCRYPTION_KEY, OPENSSL_RAW_DATA, $iv);
+// Obține toate notele
+$notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Verifică dacă există note
+if ($notes) {
+    echo json_encode(['success' => true, 'notes' => $notes]);
+} else {
+    echo json_encode(['success' => false, 'error' => 'Nu sunt note pentru acest utilizator']);
 }
-
-$notes = [];
-while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    $full    = decrypt_note($r['content'], $r['iv']);
-    $preview = mb_strimwidth($full, 0, 30, '…');
-    $notes[] = [
-        'id'      => $r['id'],
-        'title'   => $r['title'],
-        'preview' => $preview,
-        'full'    => $full,
-        'slug'    => $r['slug'],
-    ];
-}
-
-echo json_encode(['success' => true, 'notes' => $notes]);
+?>

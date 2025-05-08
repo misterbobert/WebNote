@@ -300,6 +300,7 @@ if ($uid) {
     <main class="editor">
       <div class="title-card">
         <h2 id="note-title-display">Untitled note</h2>
+        
       </div>
       <div class="editor-card">
       <form id="editor-form" action="save_note.php" method="post">
@@ -413,38 +414,35 @@ function setupAutosave() {
     let localId = localIdInput.value.trim();
 
     clearTimeout(autosaveTimeout);
-    autosaveNote();
+  
     function autosaveNote() {
-  const titleInput = document.getElementById('note-title-input');
-  const localIdInput = document.getElementById('local-id');
+    const titleInput = document.getElementById('note-title-input');
+    const localIdInput = document.getElementById('local-id');
 
-  const content = quill.getText().trim() ? quill.root.innerHTML.trim() : '';
-  let title = titleInput.value.trim();
-  let localId = localIdInput.value.trim();
+    const content = quill.getText().trim() ? quill.root.innerHTML.trim() : '';
+    let title = titleInput.value.trim();
+    let localId = localIdInput.value.trim();
 
-  let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+    let notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
 
-  if (!localId) {
-    localId = 'draft-' + Date.now();
-    localIdInput.value = localId;
-    notes.push({ id: localId, title: title || 'Untitled note', content });
-    console.log('✅ New draft autosaved:', localId);
-  } else {
-    const index = notes.findIndex(note => note.id === localId);
-
-    if (index !== -1) {
-      notes[index].title = title || 'Untitled note';
-      notes[index].content = content;
-      console.log('✅ Draft updated:', localId);
+    // Verifică dacă nota există deja în localStorage
+    const existingIndex = notes.findIndex(note => note.id === localId);
+    if (existingIndex !== -1) {
+        // Actualizează nota existentă
+        notes[existingIndex].title = title || 'Untitled note';
+        notes[existingIndex].content = content;
+        console.log('✅ Draft updated:', localId);
     } else {
-      notes.push({ id: localId, title: title || 'Untitled note', content });
-      console.log('✅ New draft added:', localId);
+        // Dacă nu există, adaugă o notă nouă
+        notes.push({ id: localId, title: title || 'Untitled note', content });
+        console.log('✅ New draft added:', localId);
     }
-  }
 
-  localStorage.setItem('localNotes', JSON.stringify(notes));
-  showLocalNotes();
+    localStorage.setItem('localNotes', JSON.stringify(notes));
+    showLocalNotes(); // Afișează notele după ce le-ai salvat
 }
+
+autosaveNote();
 
   });
 }
@@ -505,34 +503,35 @@ function createNewNote(forceNew = false) {
 // Afișare Notițe Locale
 // Afișare Notițe Locale
 function showLocalNotes() {
-  document.getElementById('notes-list').innerHTML = '';
+    const container = document.getElementById('notes-list');
+    // Nu curăța complet lista de note, doar actualizează elementele
+    const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
+    
+    // Dacă nu există note, adaugă-le
+    if (notes.length > 0) {
+        notes.forEach(note => {
+            // Verifică dacă butonul deja există
+            let existingButton = document.querySelector(`[data-id="${note.id}"]`);
+            if (!existingButton) {
+                const btn = document.createElement('button');
+                btn.className = 'panel-btn note-btn';
+                btn.textContent = note.title || 'Untitled note';
+                btn.dataset.id = note.id;
+                btn.dataset.slug = note.slug;
 
-  const container = document.getElementById('notes-list');
-  container.innerHTML = '';
-  const notes = JSON.parse(localStorage.getItem('localNotes') || '[]');
-  notes.forEach(note => {
-    const btn = document.createElement('button');
-    btn.className = 'panel-btn note-btn';
-    btn.textContent = note.title || 'Untitled note';
-    btn.dataset.noteId = note.id;
+                // Afișează detaliile notei la click
+                btn.addEventListener('click', () => {
+                    // Afișează titlul notei
+                    document.getElementById('note-title-display').innerText = note.title;
+                    // Afișează conținutul complet al notei în Quill
+                    quill.root.innerHTML = note.content;
+                });
 
-    btn.addEventListener('click', () => {
-      quill.root.innerHTML = note.content;
-      document.getElementById('note-title-display').innerText = note.title;
-      document.getElementById('note-title-input').value = note.title;
-      document.getElementById('local-id').value = note.id;
-
-      // Actualizăm `data-note-id` al butonului „Save to Account”
-      document.querySelector('.save-to-account').dataset.noteId = note.id;
-
-      console.log('✅ Note loaded:', note.id);
-    });
-
-    container.appendChild(btn);
-  });
+                container.appendChild(btn);
+            }
+        });
+    }
 }
-
-
 
 
 
@@ -670,10 +669,25 @@ function changeNoteTitle() {
 document.addEventListener('DOMContentLoaded', () => {
  
   setupEventListeners();
-  showLocalNotes();
-  // Elimină complet linia asta din DOMContentLoaded:
-// loadMessages(userId);
+  showLocalNotes();  
+if (window.initialNote) {
+        const noteTitleDisplay = document.getElementById('note-title-display');
+        if (noteTitleDisplay) {
+            noteTitleDisplay.innerText = window.initialNote.title || 'Untitled note';
+        }
 
+        const noteContentDisplay = document.getElementById('note-content');
+        if (noteContentDisplay) {
+            noteContentDisplay.innerText = window.initialNote.full || ''; // Asigură-te că există conținut
+        }
+
+        // Setează valorile în formular
+        document.getElementById('note-title-input').value = window.initialNote.title || '';
+        document.getElementById('note-id').value = window.initialNote.id || '';
+        document.getElementById('note-slug').value = window.initialNote.slug || '';
+    } else {
+        console.warn("initialNote nu conține date.");
+    }
 const notifBtn = document.getElementById('notif-btn');
   const notifPanel = document.getElementById('notif-panel');
 
@@ -770,41 +784,43 @@ if (changeTitleBtn) changeTitleBtn.addEventListener('click', changeNoteTitle);
   function refreshAccountNotes() {
     document.getElementById('notes-list').innerHTML = '';
 
+  // Apel AJAX pentru a aduce notele
   fetch('get_notes.php')
-    .then(r => r.json())
-    .then(data => {
-      if (!data.success) {
-        console.warn('⚠️ Nu s-au putut încărca notițele:', data.message);
-        return;
-      }
+        .then(response => response.json())
+        .then(data => {
+            console.log('Răspuns de la server:', data);
 
-      // Șterge lista veche
-      const notesList = document.getElementById('notes-list');
-      notesList.innerHTML = '';
+            if (data.success) {
+                data.notes.forEach(note => {
+                    const btn = document.createElement('button');
+                    btn.className = 'panel-btn note-btn';
+                    btn.textContent = note.title || 'Untitled note';
+                    btn.dataset.id = note.id;
+                    btn.dataset.slug = note.slug;
 
-      data.notes.forEach(note => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'panel-btn note-btn';
-        btn.textContent = note.title || note.preview;
-        btn.dataset.id = note.id;
-        btn.dataset.slug = note.slug;
+                    // Afișează detaliile notei la click
+                    btn.addEventListener('click', () => {
+                        // Afișează titlul notei
+                        document.getElementById('note-title-display').innerText = note.title;
 
-        btn.addEventListener('click', () => {
-          quill.root.innerHTML = note.full;
-          document.getElementById('note-title-display').innerText = note.title;
-          document.getElementById('note-title-input').value = note.title;
-          document.getElementById('note-id').value = note.id;
-          document.getElementById('note-slug').value = note.slug;
-        });
+                        // Afișează conținutul complet al notei în Quill
+                        const quillEditor = document.getElementById('quill-editor');
+                        if (quillEditor) {
+                            // Setează conținutul în editorul Quill
+                            quill.root.innerHTML = note.content;
+                        }
+                    });
 
-        notesList.appendChild(btn);
-      });
-
-      console.log(`📝 Notițe actualizate: ${data.notes.length}`);
-    })
-    .catch(err => console.error('Eroare la încărcarea notițelor:', err));
+                    document.getElementById('notes-list').appendChild(btn);
+                });
+            } else {
+                console.error('Eroare la încărcarea notelor:', data.error);
+            }
+        })
+        .catch(err => console.error('Eroare la conectarea cu serverul:', err));
 }
+console.log(document.getElementById('note-title-display')); // Verifică dacă elementul există
+console.log(document.getElementById('note-content')); // Verifică dacă elementul există
 
 // Apelează-o după DOM Ready
 refreshAccountNotes();
