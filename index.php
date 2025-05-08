@@ -37,7 +37,8 @@ if ($slug) {
             $initialNote = [
                 'id'       => $r['id'],
                 'title'    => $r['title']    ?: 'Untitled note',
-                'full'     => decrypt_note($r['content'], $r['iv']),
+              'full'     => $r['content'],
+
                 'slug'     => $slug,
                 'editable' => (int)($r['editable'] ?? 0),
             ];
@@ -56,7 +57,8 @@ if ($slug) {
             $initialNote = [
                 'id'       => null,
                 'title'    => $r['title']    ?: 'Untitled note',
-                'full'     => decrypt_note($r['content'], $r['iv']),
+               'full'     => $r['content'],
+
                 'slug'     => $slug,
                 'editable' => (int)($r['editable'] ?? 0),
             ];
@@ -671,6 +673,25 @@ document.addEventListener('DOMContentLoaded', () => {
   showLocalNotes();
   // Elimină complet linia asta din DOMContentLoaded:
 // loadMessages(userId);
+
+const notifBtn = document.getElementById('notif-btn');
+  const notifPanel = document.getElementById('notif-panel');
+
+  if (notifBtn && notifPanel) {
+    notifBtn.addEventListener('click', () => {
+      // Toggle vizibilitatea panoului
+      notifPanel.style.display = (notifPanel.style.display === 'none' || notifPanel.style.display === '') 
+        ? 'block' 
+        : 'none';
+    });
+
+    // Închide notificările dacă dai click în afara lor
+    document.addEventListener('click', (e) => {
+      if (!notifPanel.contains(e.target) && !notifBtn.contains(e.target)) {
+        notifPanel.style.display = 'none';
+      }
+    });
+  }
   initializeQuill();
   document.getElementById('share-cancel').addEventListener('click', () => {
   document.getElementById('share-modal').style.display = 'none';
