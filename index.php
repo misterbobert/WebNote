@@ -532,7 +532,7 @@ function showLocalNotes() {
         });
     }
 }
-
+  
 
 
 // Salvare în Cont
